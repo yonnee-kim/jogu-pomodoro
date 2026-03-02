@@ -40,6 +40,9 @@ class _AppleMotionWidgetState extends State<AppleMotionWidget> {
         currentGif: imgUrl,
       );
       if (newGif != imgUrl) {
+        if (newGif.endsWith('.gif')) {
+          AssetImage(newGif).evict();
+        }
         imgUrl = newGif;
         setState(() {});
       }
