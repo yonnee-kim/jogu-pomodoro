@@ -5,26 +5,12 @@ import 'package:joguman_pomodoro/providers/theme_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
-class TimerWidget extends StatefulWidget {
-  const TimerWidget({
-    super.key,
-  });
-
-  @override
-  State<TimerWidget> createState() => _TimerWidgetState();
-}
-
-class _TimerWidgetState extends State<TimerWidget> {
-  @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-  }
+class TimerWidget extends StatelessWidget {
+  const TimerWidget({super.key});
 
   @override
   Widget build(BuildContext context) {
-    int themeIndex = context.watch<ThemeProvider>().themeIndex;
-    Color jogumanYellow = const Color.fromRGBO(255, 211, 0, 1);
+    final skin = context.watch<ThemeProvider>().currentSkin;
 
     double numberHeight = 10.5.w;
     int currentSec = context.watch<DataProvider>().currSec;
@@ -51,8 +37,6 @@ class _TimerWidgetState extends State<TimerWidget> {
       '0': const AssetImage('assets/img/0.png'),
     };
 
-    if (themeIndex == 1) {}
-
     return Stack(
       alignment: Alignment.center,
       children: [
@@ -62,9 +46,7 @@ class _TimerWidgetState extends State<TimerWidget> {
               return SizedBox(
                 height: 51.w,
                 width: 100.w,
-                child: themeIndex == 1
-                    ? Image(image: AssetImage(isStarted ? 'assets/img/wash/machine_head_on.png' : 'assets/img/wash/machine_head_off.png'))
-                    : null,
+                child: skin.timerOverlayBuilder != null ? skin.timerOverlayBuilder!(isStarted) : null,
               );
             }),
         Transform.translate(
@@ -78,15 +60,15 @@ class _TimerWidgetState extends State<TimerWidget> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Image(image: numberMap[minutes1], color: themeIndex == 1 ? jogumanYellow : null, height: numberHeight),
+                    Image(image: numberMap[minutes1], color: skin.numberTintColor, height: numberHeight),
                     SizedBox(width: 0.8.w),
-                    Image(image: numberMap[minutes2], color: themeIndex == 1 ? jogumanYellow : null, height: numberHeight),
+                    Image(image: numberMap[minutes2], color: skin.numberTintColor, height: numberHeight),
                   ],
                 ),
               ),
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 3.w),
-                child: Image.asset('assets/img/colon.png', color: themeIndex == 1 ? jogumanYellow : null, height: numberHeight),
+                child: Image.asset('assets/img/colon.png', color: skin.numberTintColor, height: numberHeight),
               ),
               Flexible(
                 flex: 1,
@@ -94,9 +76,9 @@ class _TimerWidgetState extends State<TimerWidget> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    Image(image: numberMap[seconds1], color: themeIndex == 1 ? jogumanYellow : null, height: numberHeight),
+                    Image(image: numberMap[seconds1], color: skin.numberTintColor, height: numberHeight),
                     SizedBox(width: 0.8.w),
-                    Image(image: numberMap[seconds2], color: themeIndex == 1 ? jogumanYellow : null, height: numberHeight),
+                    Image(image: numberMap[seconds2], color: skin.numberTintColor, height: numberHeight),
                   ],
                 ),
               ),

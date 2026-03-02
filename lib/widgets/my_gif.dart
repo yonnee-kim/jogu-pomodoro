@@ -24,16 +24,7 @@ class MyGif extends StatefulWidget {
 
 class _MyGifState extends State<MyGif> {
   @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-    setState(() {});
-  }
-
-  @override
   void dispose() {
-    // TODO: implement dispose
-    print('${widget.image} 디스포즈됨');
     super.dispose();
   }
 
@@ -50,7 +41,7 @@ class _MyGifState extends State<MyGif> {
       },
       fadeDuration: Duration.zero,
       autoPlay: widget.autoPlay,
-      progressBuilder: (context) => Image.asset('assets/img/wash_loading.png'),
+      progressBuilder: (context) => Image.asset('assets/img/wash/wash_loading.png'),
     );
   }
 }

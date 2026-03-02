@@ -4,10 +4,9 @@ import 'package:alarm/alarm.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:joguman_pomodoro/models/skin_configs.dart';
 import 'package:joguman_pomodoro/providers/data_provider.dart';
 import 'package:joguman_pomodoro/providers/theme_provider.dart';
-import 'package:joguman_pomodoro/widgets/motion_widget_apple.dart';
-import 'package:joguman_pomodoro/widgets/motion_widget_wash.dart';
 import 'package:joguman_pomodoro/widgets/pomodoro_cast.dart';
 import 'package:joguman_pomodoro/widgets/timer_widget.dart';
 import 'package:just_audio/just_audio.dart';
@@ -36,7 +35,6 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     WakelockPlus.enable();
@@ -47,11 +45,12 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     isGranted = await Permission.notification.isGranted;
     WidgetsBinding.instance.addPostFrameCallback(
       (_) async {
+        final skin = context.read<ThemeProvider>().currentSkin;
         try {
           await Future.wait([
             checkSoundMode(),
-            precacheImages(context),
-            prefetchingGifImages(),
+            precacheImages(context, skin),
+            prefetchGifImages(skin),
           ]);
         } catch (e) {
           print('initialization error: $e');
@@ -73,11 +72,10 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       context.read<DataProvider>().setLeaveDateTime(currMillisec);
     }
     if (state == AppLifecycleState.resumed) {
-      print('isStarted : ${context.read<DataProvider>().isStarted}');
-      print('gifIndex : ${context.read<DataProvider>().washGifIndex}');
-      setTimerByLifecycle(context, state);
+      final skin = context.read<ThemeProvider>().currentSkin;
+      setTimerByLifecycle(context, state, skin);
       WidgetsBinding.instance.addPostFrameCallback((_) async {
-        await precacheImages(context);
+        await precacheImages(context, skin);
       });
       if (isGranted != await Permission.notification.isGranted) {
         isGranted = await Permission.notification.isGranted;
@@ -139,54 +137,41 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     } else {
       clockSize = maxHeight * 0.9;
     }
-    List<Widget> pomodoroList = [
-      // 사과
-      PomodoroCast(
+    List<Widget> pomodoroList = skinConfigs.map((config) {
+      Widget motionWidget = config.motionWidgetBuilder();
+      if (config.centerAnimationScale != null) {
+        motionWidget = Transform.scale(scale: config.centerAnimationScale!, child: motionWidget);
+      }
+
+      return PomodoroCast(
         dialImage: 'assets/img/chrono.png',
         clockSize: clockSize,
         clockHandHeight: clockSize * (7.8 / 10) / 2 - 5,
         clockHandWidth: 5,
         clockHandColor: const Color.fromARGB(255, 222, 37, 49),
-        leftTimeColor: const Color.fromRGBO(222, 37, 49, 1),
-        clockHandFoot: Image.asset('assets/img/apple/apple.png', width: 36),
-        currThemeIndex: themeIndex,
+        leftTimeColor: config.leftTimeColor,
+        dialCircleColor: config.dialCircleColor,
+        dialShadowColor: config.dialShadowColor,
+        clockHandFootYOffset: config.clockHandFootOffset,
+        clockHandFoot: Image.asset(config.clockHandFootAsset, width: config.clockHandFootWidth),
         centerAnimation: Container(
           width: (clockSize) * 0.75 - 40,
           height: (clockSize) * 0.75 - 40,
-          clipBehavior: Clip.hardEdge,
-          decoration: const BoxDecoration(
+          clipBehavior: config.centerClipBehavior,
+          decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: Colors.white,
-            boxShadow: [BoxShadow(color: Color.fromARGB(255, 137, 137, 137), blurRadius: 12, spreadRadius: -3)],
+            boxShadow: [BoxShadow(color: config.centerShadowColor, blurRadius: config.centerShadowBlur, spreadRadius: config.centerShadowSpread)],
           ),
-          child: const AppleMotionWidget(),
+          child: motionWidget,
         ),
-      ),
-      // 세탁기
-      PomodoroCast(
-        dialImage: 'assets/img/chrono.png',
-        clockSize: clockSize,
-        clockHandHeight: clockSize * (7.8 / 10) / 2 - 5,
-        clockHandWidth: 5,
-        clockHandColor: const Color.fromARGB(255, 222, 37, 49),
-        leftTimeColor: const Color.fromRGBO(22, 20, 24, 1),
-        clockHandFoot: Image.asset('assets/img/wash/dot.png', width: 26),
-        currThemeIndex: themeIndex,
-        centerAnimation: Container(
-          width: (clockSize) * 0.75 - 40,
-          height: (clockSize) * 0.75 - 40,
-          decoration: const BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white,
-            boxShadow: [BoxShadow(color: Color.fromARGB(255, 0, 0, 0), blurRadius: 10, spreadRadius: -1)],
-          ),
-          child: Transform.scale(scale: 1.11, child: const WashMotionWidget()),
-        ),
-      ),
-    ];
+      );
+    }).toList();
+
+    final skin = context.watch<ThemeProvider>().currentSkin;
 
     return Scaffold(
-      backgroundColor: themeIndex == 0 ? Colors.white : const Color.fromRGBO(245, 246, 247, 1),
+      backgroundColor: skin.backgroundColor,
       body: !isLoaded
           ? const Center(child: CircularProgressIndicator(color: Color.fromARGB(255, 189, 189, 189)))
           : SafeArea(
@@ -249,14 +234,7 @@ class _BottomButtonWidetState extends State<BottomButtonWidet> {
   bool isTapped = false;
 
   @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-  }
-
-  @override
   Future<void> dispose() async {
-    // TODO: implement dispose
     await player.dispose();
     super.dispose();
   }

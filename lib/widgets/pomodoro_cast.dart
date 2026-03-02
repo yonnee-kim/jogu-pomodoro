@@ -13,7 +13,6 @@ class PomodoroCast extends StatefulWidget {
     required this.clockSize,
     required this.clockHandWidth,
     required this.clockHandHeight,
-    required this.currThemeIndex,
     this.clockHandFoot,
     this.leftTimeColor = Colors.red,
     this.backgroundImage,
@@ -23,11 +22,13 @@ class PomodoroCast extends StatefulWidget {
     this.clockHandColor = Colors.deepOrange,
     this.clockHandHead = const SizedBox(),
     this.centerAnimation,
+    this.dialCircleColor = const Color.fromRGBO(237, 237, 237, 1),
+    this.dialShadowColor = Colors.grey,
+    this.clockHandFootYOffset = 9,
   });
   final double clockSize;
   final double clockHandWidth;
   final double clockHandHeight;
-  final int currThemeIndex;
   final Color leftTimeColor;
   final DecorationImage? backgroundImage;
   final Color backgroundColor;
@@ -37,6 +38,9 @@ class PomodoroCast extends StatefulWidget {
   final Widget? clockHandFoot;
   final Widget clockHandHead;
   final Widget? centerAnimation;
+  final Color dialCircleColor;
+  final Color dialShadowColor;
+  final double clockHandFootYOffset;
 
   @override
   State<PomodoroCast> createState() => _PomodoroCastState();
@@ -52,10 +56,8 @@ class _PomodoroCastState extends State<PomodoroCast> {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     center = Offset(widget.clockSize / 2, widget.clockSize / 2);
-    setState(() {});
   }
 
   void onPanUpdate(DragUpdateDetails details) {
@@ -142,10 +144,10 @@ class _PomodoroCastState extends State<PomodoroCast> {
                     height: clockSize * 0.75,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: widget.currThemeIndex == 0 ? const Color.fromRGBO(237, 237, 237, 1) : const Color.fromRGBO(210, 210, 215, 1),
+                      color: widget.dialCircleColor,
                       boxShadow: [
                         BoxShadow(
-                          color: widget.currThemeIndex == 0 ? Colors.grey : const Color.fromARGB(255, 189, 189, 189),
+                          color: widget.dialShadowColor,
                           blurRadius: 20,
                           spreadRadius: -5,
                         )
@@ -168,7 +170,7 @@ class _PomodoroCastState extends State<PomodoroCast> {
                     Transform.rotate(
                       angle: angle,
                       child: Transform.translate(
-                        offset: Offset(0, widget.currThemeIndex == 0 ? -(clockSize * 0.75 / 2) + 9 : -(clockSize * 0.75 / 2) + 11),
+                        offset: Offset(0, -(clockSize * 0.75 / 2) + widget.clockHandFootYOffset),
                         child: Transform.rotate(angle: -angle, child: widget.clockHandFoot),
                       ),
                     ),
