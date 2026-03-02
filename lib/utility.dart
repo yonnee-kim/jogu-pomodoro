@@ -15,60 +15,26 @@ import 'package:sound_mode/utils/ringer_mode_statuses.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:vibration/vibration.dart';
 
-final List<String> imagePaths = [
-  'assets/gif/apple_01_blink.gif',
-  'assets/gif/apple_01.gif',
-  'assets/gif/apple_02_blink.gif',
-  'assets/gif/apple_02.gif',
-  'assets/gif/apple_03_blink.gif',
-  'assets/gif/apple_03.gif',
-  'assets/gif/apple_04_blink.gif',
-  'assets/gif/apple_04.gif',
-  'assets/img/play.png',
-  'assets/img/stop.png',
-  'assets/img/1.png',
-  'assets/img/2.png',
-  'assets/img/3.png',
-  'assets/img/4.png',
-  'assets/img/5.png',
-  'assets/img/6.png',
-  'assets/img/7.png',
-  'assets/img/8.png',
-  'assets/img/9.png',
-  'assets/img/0.png',
-  'assets/img/colon.png',
-  'assets/img/wash/machine_head_on.png',
-  'assets/img/wash/machine_head_off.png',
-];
+import 'package:joguman_pomodoro/models/skin_config.dart';
+import 'package:joguman_pomodoro/models/skin_configs.dart';
 
 RingerModeStatus ringerStatus = RingerModeStatus.unknown;
 
-Future<void> precacheImages(BuildContext context) async {
-  for (String path in imagePaths) {
+Future<void> precacheImages(BuildContext context, SkinConfig skin) async {
+  for (String path in [...sharedImagePaths, ...skin.precacheImagePaths]) {
     await precacheImage(AssetImage(path), context);
   }
 }
 
-Future<void> prefetchingGifImages() async {
-  DateTime start = DateTime.now();
-  await Future.wait([
-    GifView.preFetchImage(const AssetImage('assets/gif/wash_activate.gif')),
-    GifView.preFetchImage(const AssetImage('assets/gif/wash_blink.gif')),
-    GifView.preFetchImage(const AssetImage('assets/gif/wash_start.gif')),
-    GifView.preFetchImage(const AssetImage('assets/gif/wash_stop.gif')),
-  ]);
-  DateTime end = DateTime.now();
-  print('wash 프리패치 완료, 걸린 시간(millisec) : ${end.difference(start).inMilliseconds}');
-}
-
-evictAndPreCacheAll(BuildContext context) async {
-  for (var e in imagePaths) {
-    await AssetImage(e).evict().then((value) => precacheImage(AssetImage(e), context));
-  }
+Future<void> prefetchGifImages(SkinConfig skin) async {
+  if (skin.prefetchGifPaths.isEmpty) return;
+  await Future.wait(
+    skin.prefetchGifPaths.map((path) => GifView.preFetchImage(AssetImage(path))),
+  );
 }
 
 // 라이프사이클 관련
-Future<void> setTimerByLifecycle(BuildContext context, AppLifecycleState state) async {
+Future<void> setTimerByLifecycle(BuildContext context, AppLifecycleState state, SkinConfig skin) async {
   Timer? myTimer = context.read<DataProvider>().myTimer;
   DateTime? leaveDate = context.read<DataProvider>().leaveDate;
   int? leaveMillisec = context.read<DataProvider>().leaveMillisec;
@@ -86,7 +52,7 @@ Future<void> setTimerByLifecycle(BuildContext context, AppLifecycleState state) 
     }
   }
   WidgetsBinding.instance.addPostFrameCallback((_) async {
-    precacheImages(context);
+    precacheImages(context, skin);
   });
 }
 

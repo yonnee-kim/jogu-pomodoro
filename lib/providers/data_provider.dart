@@ -15,7 +15,6 @@ class DataProvider with ChangeNotifier {
   int? leaveMillisec;
   int currSec = 0;
   int currMillisec = 0;
-  int washGifIndex = 0;
   DateTime? startDate;
   DateTime? leaveDate;
   DateTime? alarmDate;
@@ -35,11 +34,6 @@ class DataProvider with ChangeNotifier {
 
   setIsStarted(bool value) {
     isStarted = value;
-    notifyListeners();
-  }
-
-  setWashGifIndex(int value) {
-    washGifIndex = value;
     notifyListeners();
   }
 

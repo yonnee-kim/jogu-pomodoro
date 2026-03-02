@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:joguman_pomodoro/models/skin_config.dart';
+import 'package:joguman_pomodoro/models/skin_configs.dart';
 
 class ThemeProvider with ChangeNotifier {
   ThemeProvider() {
     _loadThemeIndex();
   }
-  int themeLength = 2;
+
   int themeIndex = 0;
 
+  int get skinCount => skinConfigs.length;
+
+  SkinConfig get currentSkin => skinConfigs[themeIndex];
 
   Future<void> addThemeIndex() async {
-    themeIndex = themeIndex == themeLength - 1 ? 0 : themeIndex + 1;
+    themeIndex = (themeIndex + 1) % skinCount;
     Box themeBox;
     try {
       themeBox = Hive.box('themeBox');
@@ -23,9 +28,8 @@ class ThemeProvider with ChangeNotifier {
 
   _loadThemeIndex() async {
     var themeBox = await Hive.openBox('themeBox');
-    themeIndex = themeBox.get('themeIndex') ?? 0;
+    int stored = themeBox.get('themeIndex') ?? 0;
+    themeIndex = stored < skinCount ? stored : 0;
     notifyListeners();
   }
-
-  
 }
