@@ -51,6 +51,7 @@ Future<void> main() async {
   await _initLocalNotification();
   tz.initializeTimeZones();
   await EasyLocalization.ensureInitialized();
+  await Hive.openBox('themeBox');
 
   runApp(
     EasyLocalization(

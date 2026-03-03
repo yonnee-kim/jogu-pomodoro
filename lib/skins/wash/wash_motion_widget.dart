@@ -109,10 +109,10 @@ class _WashMotionWidgetState extends State<WashMotionWidget> {
         return IndexedStack(
           index: gifIndex,
           children: [
-            MyGif(image: 'assets/gif/wash_blink.gif', callback: callbackBlink, controller: controllerBlink, autoPlay: true, loop: true),
-            MyGif(image: 'assets/gif/wash_start.gif', callback: callbackStart, controller: controllerStart),
-            MyGif(image: 'assets/gif/wash_activate.gif', callback: callbackActivate, controller: controllerActivate),
-            MyGif(image: 'assets/gif/wash_stop.gif', callback: callbackStop, controller: controllerStop),
+            MyGif(image: 'assets/gif/wash/wash_blink.gif', callback: callbackBlink, controller: controllerBlink, autoPlay: true, loop: true),
+            MyGif(image: 'assets/gif/wash/wash_start.gif', callback: callbackStart, controller: controllerStart),
+            MyGif(image: 'assets/gif/wash/wash_activate.gif', callback: callbackActivate, controller: controllerActivate),
+            MyGif(image: 'assets/gif/wash/wash_stop.gif', callback: callbackStop, controller: controllerStop),
           ],
         );
       },

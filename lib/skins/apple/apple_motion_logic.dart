@@ -1,14 +1,14 @@
 const double _frameGap = 0.04;
 
 const Map<String, int> appleGifFrames = {
-  'assets/gif/apple_01.gif': 1,
-  'assets/gif/apple_01_blink.gif': 46,
-  'assets/gif/apple_02.gif': 72,
-  'assets/gif/apple_02_blink.gif': 45,
-  'assets/gif/apple_03.gif': 72,
-  'assets/gif/apple_03_blink.gif': 45,
-  'assets/gif/apple_04.gif': 80,
-  'assets/gif/apple_04_blink.gif': 45,
+  'assets/gif/apple/apple_01.gif': 1,
+  'assets/gif/apple/apple_01_blink.gif': 46,
+  'assets/gif/apple/apple_02.gif': 72,
+  'assets/gif/apple/apple_02_blink.gif': 45,
+  'assets/gif/apple/apple_03.gif': 72,
+  'assets/gif/apple/apple_03_blink.gif': 45,
+  'assets/gif/apple/apple_04.gif': 80,
+  'assets/gif/apple/apple_04_blink.gif': 45,
 };
 
 int getGifDurationMilliSec(String imgUrl) {
@@ -24,7 +24,7 @@ String getAppleGifForProgress({
   required String currentGif,
 }) {
   if (currentMilliSec <= 0) {
-    return 'assets/gif/apple_01.gif';
+    return 'assets/gif/apple/apple_01.gif';
   }
 
   int twoThirdMs = (startSec * 2 / 3).round() * 1000;
@@ -33,31 +33,31 @@ String getAppleGifForProgress({
   // 2/3 ~ 1 구간
   if (currentMilliSec > twoThirdMs) {
     if (currentMilliSec == startSec * 1000) {
-      return 'assets/gif/apple_02.gif';
+      return 'assets/gif/apple/apple_02.gif';
     }
     if (currentMilliSec < startSec * 1000 - getGifDurationMilliSec(currentGif) &&
-        currentGif != 'assets/gif/apple_02_blink.gif') {
-      return 'assets/gif/apple_02_blink.gif';
+        currentGif != 'assets/gif/apple/apple_02_blink.gif') {
+      return 'assets/gif/apple/apple_02_blink.gif';
     }
   }
   // 1/3 ~ 2/3 구간
   else if (currentMilliSec > oneThirdMs) {
     if (currentMilliSec == twoThirdMs) {
-      return 'assets/gif/apple_03.gif';
+      return 'assets/gif/apple/apple_03.gif';
     }
     if (currentMilliSec < twoThirdMs - getGifDurationMilliSec(currentGif) &&
-        currentGif != 'assets/gif/apple_03_blink.gif') {
-      return 'assets/gif/apple_03_blink.gif';
+        currentGif != 'assets/gif/apple/apple_03_blink.gif') {
+      return 'assets/gif/apple/apple_03_blink.gif';
     }
   }
   // 0 ~ 1/3 구간
   else if (currentMilliSec > 0) {
     if (currentMilliSec == oneThirdMs) {
-      return 'assets/gif/apple_04.gif';
+      return 'assets/gif/apple/apple_04.gif';
     }
     if (currentMilliSec < oneThirdMs - getGifDurationMilliSec(currentGif) &&
-        currentGif != 'assets/gif/apple_04_blink.gif') {
-      return 'assets/gif/apple_04_blink.gif';
+        currentGif != 'assets/gif/apple/apple_04_blink.gif') {
+      return 'assets/gif/apple/apple_04_blink.gif';
     }
   }
 
@@ -73,12 +73,12 @@ String getAppleGifForPause({
   int oneThirdMs = (startSec * 1 / 3).round() * 1000;
 
   if (currentMilliSec > twoThirdMs) {
-    return 'assets/gif/apple_02_blink.gif';
+    return 'assets/gif/apple/apple_02_blink.gif';
   } else if (currentMilliSec > oneThirdMs) {
-    return 'assets/gif/apple_03_blink.gif';
+    return 'assets/gif/apple/apple_03_blink.gif';
   } else if (currentMilliSec > 0) {
-    return 'assets/gif/apple_04_blink.gif';
+    return 'assets/gif/apple/apple_04_blink.gif';
   } else {
-    return 'assets/gif/apple_01_blink.gif';
+    return 'assets/gif/apple/apple_01_blink.gif';
   }
 }

@@ -16,7 +16,7 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:vibration/vibration.dart';
 
 import 'package:joguman_pomodoro/models/skin_config.dart';
-import 'package:joguman_pomodoro/models/skin_configs.dart';
+import 'package:joguman_pomodoro/skins/skin_registry.dart';
 
 RingerModeStatus ringerStatus = RingerModeStatus.unknown;
 

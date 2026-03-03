@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:joguman_pomodoro/providers/data_provider.dart';
-import 'package:joguman_pomodoro/widgets/apple_motion_logic.dart';
+import 'package:joguman_pomodoro/skins/apple/apple_motion_logic.dart';
 import 'package:provider/provider.dart';
 
 class AppleMotionWidget extends StatefulWidget {
@@ -14,7 +14,7 @@ class AppleMotionWidget extends StatefulWidget {
 class _AppleMotionWidgetState extends State<AppleMotionWidget> {
   Timer? _debounce;
   int currMilliSec = 0;
-  String imgUrl = 'assets/gif/apple_01_blink.gif';
+  String imgUrl = 'assets/gif/apple/apple_01_blink.gif';
 
   @override
   void initState() {
@@ -48,7 +48,7 @@ class _AppleMotionWidgetState extends State<AppleMotionWidget> {
       }
       currMilliSec -= 100;
       if (currMilliSec <= 0 && _debounce != null) {
-        imgUrl = 'assets/gif/apple_01.gif';
+        imgUrl = 'assets/gif/apple/apple_01.gif';
         _debounce!.cancel();
         setState(() {});
       }
