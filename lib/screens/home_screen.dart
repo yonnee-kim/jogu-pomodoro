@@ -1,10 +1,11 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:alarm/alarm.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:joguman_pomodoro/models/skin_configs.dart';
+import 'package:joguman_pomodoro/skins/skin_registry.dart';
 import 'package:joguman_pomodoro/providers/data_provider.dart';
 import 'package:joguman_pomodoro/providers/theme_provider.dart';
 import 'package:joguman_pomodoro/widgets/pomodoro_cast.dart';
@@ -26,6 +27,10 @@ class HomeScreen extends StatefulWidget {
 }
 
 class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
+  // ── 디버그: 화면 비율 조절 ──
+  static const bool _debugAspectRatio = false; // false로 바꾸면 슬라이더 숨김
+  double _aspectRatio = 1 / 1.95;
+
   NeverScrollableScrollPhysics? pageScrollPhysics = const NeverScrollableScrollPhysics();
   bool isGranted = false;
   bool isLongPressed = false;
@@ -126,17 +131,10 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildContent(BuildContext context, double clockSize) {
+    final skin = context.watch<ThemeProvider>().currentSkin;
     themeIndex = context.watch<ThemeProvider>().themeIndex;
-    double maxHeight = 100.h;
-    double maxWidth = 100.w;
-    late double clockSize;
-    if (maxWidth < maxHeight) {
-      clockSize = maxWidth * 0.9;
-    } else {
-      clockSize = maxHeight * 0.9;
-    }
+
     List<Widget> pomodoroList = skinConfigs.map((config) {
       Widget motionWidget = config.motionWidgetBuilder();
       if (config.centerAnimationScale != null) {
@@ -144,7 +142,9 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       }
 
       return PomodoroCast(
-        dialImage: 'assets/img/chrono.png',
+        dialImage: config.dialImageAsset ?? 'assets/img/chrono.png',
+        dialImageOffset: config.dialImageOffset,
+        dialImageScale: config.dialImageScale,
         clockSize: clockSize,
         clockHandHeight: clockSize * (7.8 / 10) / 2 - 5,
         clockHandWidth: 5,
@@ -152,70 +152,163 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         leftTimeColor: config.leftTimeColor,
         dialCircleColor: config.dialCircleColor,
         dialShadowColor: config.dialShadowColor,
-        clockHandFootYOffset: config.clockHandFootOffset,
-        clockHandFoot: Image.asset(config.clockHandFootAsset, width: config.clockHandFootWidth),
+        clockHandFootYOffset: config.clockHandFootOffset * clockSize,
+        clockHandFootRotatesWithDial: config.clockHandFootRotatesWithDial,
+        clockHandFoot: Image.asset(config.clockHandFootAsset, width: config.clockHandFootWidth * clockSize),
         centerAnimation: Container(
           width: (clockSize) * 0.75 - 40,
           height: (clockSize) * 0.75 - 40,
           clipBehavior: config.centerClipBehavior,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: Colors.white,
+            color: config.centerBackgroundColor,
             boxShadow: [BoxShadow(color: config.centerShadowColor, blurRadius: config.centerShadowBlur, spreadRadius: config.centerShadowSpread)],
           ),
           child: motionWidget,
         ),
+        timerPainterBuilder: config.timerPainterBuilder,
+        dialOverlayBuilder: config.dialOverlayBuilder,
+        dialBackgroundBuilder: config.dialBackgroundBuilder,
       );
     }).toList();
 
+    return Stack(
+      children: [
+        if (skin.backgroundBuilder != null) Positioned.fill(child: skin.backgroundBuilder!()),
+        SafeArea(
+          top: true,
+          child: Center(
+            child: Stack(
+              alignment: Alignment.topCenter,
+              children: [
+                Column(
+                  children: [
+                    const Spacer(flex: 4),
+                    Transform.translate(
+                      offset: Offset(0, skin.timerOffsetY),
+                      child: const TimerWidget(),
+                    ),
+                    const Spacer(flex: 1),
+                    IndexedStack(
+                      index: themeIndex,
+                      alignment: Alignment.center,
+                      children: pomodoroList,
+                    ),
+                    const Spacer(flex: 7),
+                    const BottomButtonWidet(),
+                    const Spacer(flex: 7),
+                  ],
+                ),
+                if (!isGranted)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        IconButton(
+                          style: IconButton.styleFrom(
+                            backgroundColor: Colors.white.withAlpha(200),
+                          ),
+                          onPressed: () async {
+                            await getPermissionWithNotification();
+                          },
+                          icon: const Icon(Icons.notifications, color: Color.fromARGB(255, 149, 149, 149), size: 30),
+                        )
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final skin = context.watch<ThemeProvider>().currentSkin;
 
+    if (!_debugAspectRatio) {
+      // 기존 동작: responsive_sizer 기반
+      double maxHeight = 100.h;
+      double maxWidth = 100.w;
+      late double clockSize;
+      if (maxWidth < maxHeight) {
+        clockSize = maxWidth * 0.9;
+      } else {
+        clockSize = maxHeight * 0.9;
+      }
+
+      return Scaffold(
+        backgroundColor: skin.backgroundColor,
+        body:
+            !isLoaded ? const Center(child: CircularProgressIndicator(color: Color.fromARGB(255, 189, 189, 189))) : _buildContent(context, clockSize),
+      );
+    }
+
+    // 디버그 모드: AspectRatio + LayoutBuilder로 화면비율 테스트
     return Scaffold(
       backgroundColor: skin.backgroundColor,
       body: !isLoaded
           ? const Center(child: CircularProgressIndicator(color: Color.fromARGB(255, 189, 189, 189)))
-          : SafeArea(
-              top: true,
-              child: Center(
-                child: Stack(
-                  alignment: Alignment.topCenter,
-                  children: [
-                    Column(
+          : Stack(
+              children: [
+                SafeArea(
+                  child: Center(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.red, width: 1.5),
+                      ),
+                      child: AspectRatio(
+                        aspectRatio: _aspectRatio,
+                        child: LayoutBuilder(builder: (context, constraints) {
+                          final w = constraints.maxWidth;
+                          final h = constraints.maxHeight;
+                          final clockSize = math.min(w, h) * 0.9;
+
+                          return _buildContent(context, clockSize);
+                        }),
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: MediaQuery.of(context).padding.top + 4,
+                  left: 12,
+                  right: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
                       children: [
-                        const Spacer(flex: 4),
-                        const TimerWidget(),
-                        const Spacer(flex: 1),
-                        IndexedStack(
-                          index: themeIndex,
-                          alignment: Alignment.center,
-                          children: pomodoroList,
+                        Text(
+                          '1:${(1 / _aspectRatio).toStringAsFixed(2)}',
+                          style: const TextStyle(color: Colors.white, fontSize: 12),
                         ),
-                        const Spacer(flex: 7),
-                        const BottomButtonWidet(),
-                        const Spacer(flex: 7),
+                        Expanded(
+                          child: Slider(
+                            value: _aspectRatio,
+                            min: 0.35,
+                            max: 0.75,
+                            onChanged: (v) => setState(() => _aspectRatio = v),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () => setState(() => _aspectRatio = 1 / 1.95),
+                          child: const Text(
+                            '초기화',
+                            style: TextStyle(color: Colors.white70, fontSize: 11),
+                          ),
+                        ),
                       ],
                     ),
-                    if (!isGranted)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            IconButton(
-                              style: IconButton.styleFrom(
-                                backgroundColor: Colors.white.withAlpha(200),
-                              ),
-                              onPressed: () async {
-                                await getPermissionWithNotification();
-                              },
-                              icon: const Icon(Icons.notifications, color: Color.fromARGB(255, 149, 149, 149), size: 30),
-                            )
-                          ],
-                        ),
-                      ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
     );
   }
@@ -259,6 +352,7 @@ class _BottomButtonWidetState extends State<BottomButtonWidet> {
   @override
   Widget build(BuildContext context) {
     Timer? myTimer = context.watch<DataProvider>().myTimer;
+    final skin = context.watch<ThemeProvider>().currentSkin;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 35),
@@ -279,7 +373,10 @@ class _BottomButtonWidetState extends State<BottomButtonWidet> {
                 }
               }
             },
-            child: Image.asset(myTimer != null && myTimer.isActive ? 'assets/img/stop.png' : 'assets/img/play.png', width: 60),
+            child: Image.asset(
+              myTimer != null && myTimer.isActive ? (skin.stopButtonAsset ?? 'assets/img/stop.png') : (skin.playButtonAsset ?? 'assets/img/play.png'),
+              width: 60,
+            ),
           ),
           // 테스트 버튼
           if (false)
@@ -317,7 +414,7 @@ class _BottomButtonWidetState extends State<BottomButtonWidet> {
               HapticFeedback.mediumImpact();
               await context.read<ThemeProvider>().addThemeIndex();
             },
-            child: Image.asset('assets/img/change.png', width: 60),
+            child: Image.asset(skin.changeButtonAsset ?? 'assets/img/change.png', width: 60),
           ),
         ],
       ),

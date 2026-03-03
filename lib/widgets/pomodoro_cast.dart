@@ -25,6 +25,12 @@ class PomodoroCast extends StatefulWidget {
     this.dialCircleColor = const Color.fromRGBO(237, 237, 237, 1),
     this.dialShadowColor = Colors.grey,
     this.clockHandFootYOffset = 9,
+    this.clockHandFootRotatesWithDial = false,
+    this.timerPainterBuilder,
+    this.dialOverlayBuilder,
+    this.dialBackgroundBuilder,
+    this.dialImageOffset = Offset.zero,
+    this.dialImageScale = 1.02,
   });
   final double clockSize;
   final double clockHandWidth;
@@ -34,6 +40,8 @@ class PomodoroCast extends StatefulWidget {
   final Color backgroundColor;
   final Color? dialColor;
   final String? dialImage;
+  final Offset dialImageOffset;
+  final double dialImageScale;
   final Color clockHandColor;
   final Widget? clockHandFoot;
   final Widget clockHandHead;
@@ -41,6 +49,10 @@ class PomodoroCast extends StatefulWidget {
   final Color dialCircleColor;
   final Color dialShadowColor;
   final double clockHandFootYOffset;
+  final bool clockHandFootRotatesWithDial;
+  final CustomPainter Function(double angle, Color color)? timerPainterBuilder;
+  final Widget Function(double clockSize)? dialOverlayBuilder;
+  final Widget Function(double dialSize, double angle)? dialBackgroundBuilder;
 
   @override
   State<PomodoroCast> createState() => _PomodoroCastState();
@@ -137,8 +149,17 @@ class _PomodoroCastState extends State<PomodoroCast> {
               child: Stack(
                 alignment: Alignment.center,
                 children: [
+                  // 다이얼 오버레이 (school: 학교 건물 — chrono 뒤)
+                  if (widget.dialOverlayBuilder != null)
+                    widget.dialOverlayBuilder!(clockSize),
                   // 크로노
-                  if (widget.dialImage != null) Image.asset(widget.dialImage!, width: clockSize * 1.02),
+                  if (widget.dialImage != null)
+                    Transform.translate(
+                      offset: widget.dialImageOffset * clockSize,
+                      child: Image.asset(widget.dialImage!, width: clockSize * widget.dialImageScale),
+                    ),
+                  // 다이얼 배경 (school: watch_face + lane)
+                  if (widget.dialBackgroundBuilder != null) widget.dialBackgroundBuilder!(clockSize * 0.75, angle),
                   // 남은시간 색상 채우기
                   Container(
                     height: clockSize * 0.75,
@@ -159,7 +180,9 @@ class _PomodoroCastState extends State<PomodoroCast> {
                           clockSize * 0.75 - 20,
                           clockSize * 0.7,
                         ),
-                        painter: TimerPainter(angle: angle, leftTimeColor: widget.leftTimeColor),
+                        painter: widget.timerPainterBuilder != null
+                            ? widget.timerPainterBuilder!(angle, widget.leftTimeColor)
+                            : TimerPainter(angle: angle, leftTimeColor: widget.leftTimeColor),
                       ),
                     ),
                   ),
@@ -171,7 +194,9 @@ class _PomodoroCastState extends State<PomodoroCast> {
                       angle: angle,
                       child: Transform.translate(
                         offset: Offset(0, -(clockSize * 0.75 / 2) + widget.clockHandFootYOffset),
-                        child: Transform.rotate(angle: -angle, child: widget.clockHandFoot),
+                        child: widget.clockHandFootRotatesWithDial
+                            ? widget.clockHandFoot
+                            : Transform.rotate(angle: -angle, child: widget.clockHandFoot),
                       ),
                     ),
                 ],
