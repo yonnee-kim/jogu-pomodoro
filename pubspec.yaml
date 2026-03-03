@@ -82,7 +82,10 @@ flutter:
     - assets/img/
     - assets/img/apple/
     - assets/img/wash/
+    - assets/img/school/
     - assets/gif/
+    - assets/gif/apple/
+    - assets/gif/wash/
     - assets/audio/
     - assets/translations/
 
