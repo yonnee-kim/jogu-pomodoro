@@ -2,11 +2,13 @@
 
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:alarm/alarm.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:gif_view/gif_view.dart';
+import 'package:joguman_pomodoro/providers/angle_provider.dart';
 import 'package:joguman_pomodoro/providers/data_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
@@ -46,8 +48,11 @@ Future<void> setTimerByLifecycle(BuildContext context, AppLifecycleState state, 
     if (newSec <= 0) {
       newSec = 0;
       context.read<DataProvider>().setCurrSec(newSec, milliseconds: newMillisec);
+      context.read<AngleProvider>().setAngle(0);
     } else {
       context.read<DataProvider>().setCurrSec(newSec, milliseconds: newMillisec);
+      // 남은 시간에 맞춰 다이얼 각도도 함께 보정 (60분 = 2*pi)
+      context.read<AngleProvider>().setAngle(newMillisec / 3600000 * 2 * pi);
       context.read<DataProvider>().setMyTimer(context);
     }
   }

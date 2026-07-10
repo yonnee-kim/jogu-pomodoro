@@ -17,7 +17,7 @@ if (keyPropertiesFile.exists()) {
 android {
     namespace = "com.joguman.pomodoro"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = "27.0.12077973"
+    ndkVersion = "28.0.13004108"
 
     compileOptions {
         isCoreLibraryDesugaringEnabled = true // Flag to enable support for the new language APIs / local_notification 설정
