@@ -64,13 +64,6 @@ class _PomodoroCastState extends State<PomodoroCast> {
   double positionX = 0;
   double positionY = 0;
   NeverScrollableScrollPhysics? pageScrollPhysics = const NeverScrollableScrollPhysics();
-  late Offset center; // 다이얼의 중심 위치
-
-  @override
-  void initState() {
-    super.initState();
-    center = Offset(widget.clockSize / 2, widget.clockSize / 2);
-  }
 
   void onPanUpdate(DragUpdateDetails details) {
     double angle = context.read<AngleProvider>().angle;
@@ -79,7 +72,8 @@ class _PomodoroCastState extends State<PomodoroCast> {
 
     context.read<DataProvider>().cancleTimer();
 
-    // 현재 손가락 위치와 중심의 위치를 이용해 각도 계산
+    // 현재 손가락 위치와 중심의 위치를 이용해 각도 계산 (회전 시에도 현재 clockSize 기준)
+    final center = Offset(widget.clockSize / 2, widget.clockSize / 2);
     final dx = details.localPosition.dx - center.dx;
     final dy = details.localPosition.dy - center.dy;
     angle = atan2(dy, dx) + (pi / 2); // 12시 방향을 기준으로 조정
