@@ -1,4 +1,5 @@
 {
     "app_name" : "조구만 뽀모도로 타이머",
-    "end_message" : "🦕 : 끝! 잠깐 쉬어가요."
+    "end_message" : "🦕 : 끝! 잠깐 쉬어가요.",
+    "live_activity_title" : "집중"
 }
