@@ -6,8 +6,11 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:joguman_pomodoro/skins/skin_registry.dart';
+import 'package:joguman_pomodoro/providers/angle_provider.dart';
 import 'package:joguman_pomodoro/providers/data_provider.dart';
 import 'package:joguman_pomodoro/providers/theme_provider.dart';
+import 'package:joguman_pomodoro/services/live_activity_service.dart';
+import 'package:joguman_pomodoro/services/live_activity_payload.dart';
 import 'package:joguman_pomodoro/widgets/pomodoro_cast.dart';
 import 'package:joguman_pomodoro/widgets/timer_widget.dart';
 import 'package:just_audio/just_audio.dart';
@@ -16,6 +19,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:live_activities/models/url_scheme_data.dart';
 
 import '../utility.dart';
 
@@ -37,6 +41,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   bool isLoaded = false;
   bool isComplete = false;
   int themeIndex = 0;
+  StreamSubscription<UrlSchemeData>? _urlSchemeSub;
 
   @override
   void initState() {
@@ -44,6 +49,9 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     WakelockPlus.enable();
     initFunc();
+    _urlSchemeSub = LiveActivityService.instance.urlSchemeStream.listen((data) {
+      _handleLiveActivityAction(parseLiveActivityAction(data.path ?? ''));
+    });
   }
 
   initFunc() async {
@@ -92,8 +100,29 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   Future<void> dispose() async {
     WidgetsBinding.instance.removeObserver(this);
+    await _urlSchemeSub?.cancel();
     await WakelockPlus.disable();
     super.dispose();
+  }
+
+  void _handleLiveActivityAction(LiveActivityAction action) {
+    if (!mounted) return;
+    final data = context.read<DataProvider>();
+    switch (action) {
+      case LiveActivityAction.pause:
+        data.pauseTimer();
+        break;
+      case LiveActivityAction.resume:
+        data.setMyTimer(context);
+        if (data.startSec > 0) data.setIsStarted(true);
+        break;
+      case LiveActivityAction.cancel:
+        data.cancelAndReset();
+        context.read<AngleProvider>().setAngle(data.startSec / 3600 * 2 * math.pi);
+        break;
+      case LiveActivityAction.unknown:
+        break;
+    }
   }
 
   setAlarmCallBack() {
@@ -364,8 +393,7 @@ class _BottomButtonWidetState extends State<BottomButtonWidet> {
             onTap: () {
               HapticFeedback.mediumImpact();
               if (myTimer != null && myTimer.isActive) {
-                context.read<DataProvider>().cancleTimer();
-                context.read<DataProvider>().setIsStarted(false);
+                context.read<DataProvider>().pauseTimer();
               } else {
                 context.read<DataProvider>().setMyTimer(context);
                 if (context.read<DataProvider>().startSec > 0) {

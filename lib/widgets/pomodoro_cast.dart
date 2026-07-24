@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:joguman_pomodoro/providers/angle_provider.dart';
+import 'package:joguman_pomodoro/services/live_activity_service.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/data_provider.dart';
@@ -78,6 +79,7 @@ class _PomodoroCastState extends State<PomodoroCast> {
     int minutes = (currSec / 60).round();
 
     context.read<DataProvider>().cancleTimer();
+    LiveActivityService.instance.end();
 
     // 현재 손가락 위치와 중심의 위치를 이용해 각도 계산
     final dx = details.localPosition.dx - center.dx;
