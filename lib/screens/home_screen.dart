@@ -209,7 +209,12 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             children: [
               SizedBox(
                 width: layout.leftRegion,
-                child: Center(child: _buildDial(context, layout.dialSize)),
+                // scaleDown: 다이얼이 세로 가용 높이를 넘칠 때만 축소(apple/wash),
+                // 들어오면 원본 유지(school). 중앙 정렬 유지 → 위로 올라가지 않음.
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: _buildDial(context, layout.dialSize),
+                ),
               ),
               Expanded(
                 child: Column(
