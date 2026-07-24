@@ -52,11 +52,11 @@ class DataProvider with ChangeNotifier {
   /// 일시정지: 타이머 정지(남은 시간 유지) + Live Activity를 일시정지 상태로 갱신.
   Future<void> pauseTimer() async {
     cancleTimer();
+    notifyListeners();
     await LiveActivityService.instance.updatePaused(
       remainingSeconds: (currMillisec / 1000).ceil(),
       label: 'live_activity_title'.tr(),
     );
-    notifyListeners();
   }
 
   /// 취소: 타이머 종료 + 남은 시간을 시작값(startSec)으로 복원 + Live Activity 제거.
@@ -65,8 +65,8 @@ class DataProvider with ChangeNotifier {
     cancleTimer();
     currSec = startSec;
     currMillisec = startSec * 1000;
-    await LiveActivityService.instance.end();
     notifyListeners();
+    await LiveActivityService.instance.end();
   }
 
   Future<void> setMyTimer(BuildContext context) async {

@@ -64,7 +64,8 @@ class LiveActivityService {
   /// 활동 종료 및 제거.
   Future<void> end() async {
     if (!Platform.isIOS || _activityId == null) return;
-    await _plugin.endActivity(_activityId!);
+    final id = _activityId!;
     _activityId = null;
+    await _plugin.endActivity(id);
   }
 }
