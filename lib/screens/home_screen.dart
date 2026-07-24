@@ -15,7 +15,6 @@ import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
-import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../utility.dart';
@@ -276,8 +275,10 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final skin = context.watch<ThemeProvider>().currentSkin;
 
     if (!_debugAspectRatio) {
-      double maxHeight = 100.h;
-      double maxWidth = 100.w;
+      // 방향/크기 판별은 MediaQuery를 신뢰 (responsive_sizer의 .w/.h는 회전 후 갱신이 늦음)
+      final Size screen = MediaQuery.of(context).size;
+      final double maxWidth = screen.width;
+      final double maxHeight = screen.height;
 
       if (maxWidth < maxHeight) {
         // 세로: 기존 동작 유지
