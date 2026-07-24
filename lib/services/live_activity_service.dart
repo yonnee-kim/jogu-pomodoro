@@ -23,7 +23,9 @@ class LiveActivityService {
     _initialized = true;
   }
 
-  Stream<UrlSchemeData> get urlSchemeStream => _plugin.urlSchemeStream();
+  Stream<UrlSchemeData> get urlSchemeStream => Platform.isIOS
+      ? _plugin.urlSchemeStream()
+      : const Stream<UrlSchemeData>.empty();
 
   Future<bool> _enabled() async {
     if (!Platform.isIOS || !_initialized) return false;
