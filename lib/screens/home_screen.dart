@@ -393,8 +393,8 @@ class _BottomButtonWidetState extends State<BottomButtonWidet> {
   bool isTapped = false;
 
   @override
-  Future<void> dispose() async {
-    await player.dispose();
+  void dispose() {
+    unawaited(player.dispose());
     super.dispose();
   }
 
