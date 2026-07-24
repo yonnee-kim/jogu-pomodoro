@@ -5,6 +5,7 @@ import 'package:alarm/alarm.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:joguman_pomodoro/screens/landscape_layout.dart';
 import 'package:joguman_pomodoro/skins/skin_registry.dart';
 import 'package:joguman_pomodoro/providers/data_provider.dart';
 import 'package:joguman_pomodoro/providers/theme_provider.dart';
@@ -131,11 +132,10 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     });
   }
 
-  Widget _buildContent(BuildContext context, double clockSize) {
-    final skin = context.watch<ThemeProvider>().currentSkin;
-    themeIndex = context.watch<ThemeProvider>().themeIndex;
+  Widget _buildDial(BuildContext context, double clockSize) {
+    themeIndex = context.watch<ThemeProvider>().themeIndex; // 기존 State 필드 재사용
 
-    List<Widget> pomodoroList = skinConfigs.map((config) {
+    final pomodoroList = skinConfigs.map((config) {
       Widget motionWidget = config.motionWidgetBuilder();
       if (config.centerAnimationScale != null) {
         motionWidget = Transform.scale(scale: config.centerAnimationScale!, child: motionWidget);
@@ -172,6 +172,73 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       );
     }).toList();
 
+    return IndexedStack(
+      index: themeIndex,
+      alignment: Alignment.center,
+      children: pomodoroList,
+    );
+  }
+
+  Widget _notificationButton() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          IconButton(
+            style: IconButton.styleFrom(
+              backgroundColor: Colors.white.withAlpha(200),
+            ),
+            onPressed: () async {
+              await getPermissionWithNotification();
+            },
+            icon: const Icon(Icons.notifications, color: Color.fromARGB(255, 149, 149, 149), size: 30),
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLandscapeContent(BuildContext context, LandscapeLayout layout, double numberHeight) {
+    final skin = context.watch<ThemeProvider>().currentSkin;
+
+    return Stack(
+      children: [
+        if (skin.backgroundBuilder != null) Positioned.fill(child: skin.backgroundBuilder!()),
+        SafeArea(
+          child: Row(
+            children: [
+              SizedBox(
+                width: layout.leftRegion,
+                child: Center(child: _buildDial(context, layout.dialSize)),
+              ),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Transform.translate(
+                      offset: Offset(0, skin.timerOffsetY),
+                      child: TimerWidget(numberHeight: numberHeight),
+                    ),
+                    SizedBox(height: numberHeight * 0.4),
+                    const BottomButtonWidet(landscape: true),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (!isGranted)
+          SafeArea(
+            child: Align(alignment: Alignment.topRight, child: _notificationButton()),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildContent(BuildContext context, double clockSize) {
+    final skin = context.watch<ThemeProvider>().currentSkin;
+
     return Stack(
       children: [
         if (skin.backgroundBuilder != null) Positioned.fill(child: skin.backgroundBuilder!()),
@@ -189,34 +256,13 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       child: const TimerWidget(),
                     ),
                     const Spacer(flex: 1),
-                    IndexedStack(
-                      index: themeIndex,
-                      alignment: Alignment.center,
-                      children: pomodoroList,
-                    ),
+                    _buildDial(context, clockSize),
                     const Spacer(flex: 7),
                     const BottomButtonWidet(),
                     const Spacer(flex: 7),
                   ],
                 ),
-                if (!isGranted)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        IconButton(
-                          style: IconButton.styleFrom(
-                            backgroundColor: Colors.white.withAlpha(200),
-                          ),
-                          onPressed: () async {
-                            await getPermissionWithNotification();
-                          },
-                          icon: const Icon(Icons.notifications, color: Color.fromARGB(255, 149, 149, 149), size: 30),
-                        )
-                      ],
-                    ),
-                  ),
+                if (!isGranted) _notificationButton(),
               ],
             ),
           ),
@@ -230,20 +276,31 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final skin = context.watch<ThemeProvider>().currentSkin;
 
     if (!_debugAspectRatio) {
-      // 기존 동작: responsive_sizer 기반
       double maxHeight = 100.h;
       double maxWidth = 100.w;
-      late double clockSize;
+
       if (maxWidth < maxHeight) {
-        clockSize = maxWidth * 0.9;
-      } else {
-        clockSize = maxHeight * 0.9;
+        // 세로: 기존 동작 유지
+        final double clockSize = maxWidth * 0.9;
+        return Scaffold(
+          backgroundColor: skin.backgroundColor,
+          body: !isLoaded
+              ? const Center(child: CircularProgressIndicator(color: Color.fromARGB(255, 189, 189, 189)))
+              : _buildContent(context, clockSize),
+        );
       }
 
+      // 가로: 다이얼 왼쪽 / 텍스트+버튼 오른쪽
+      final layout = computeLandscapeLayout(width: maxWidth, height: maxHeight);
+      final double landscapeNumberHeight = math.min(
+        layout.rightRegion * 0.85 / (100 / 10.5), // 타이머 폭을 패널의 약 85%에 맞춤
+        maxHeight * 0.14, // 높이 상한
+      );
       return Scaffold(
         backgroundColor: skin.backgroundColor,
-        body:
-            !isLoaded ? const Center(child: CircularProgressIndicator(color: Color.fromARGB(255, 189, 189, 189))) : _buildContent(context, clockSize),
+        body: !isLoaded
+            ? const Center(child: CircularProgressIndicator(color: Color.fromARGB(255, 189, 189, 189)))
+            : _buildLandscapeContent(context, layout, landscapeNumberHeight),
       );
     }
 

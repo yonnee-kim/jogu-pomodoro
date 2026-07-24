@@ -46,7 +46,11 @@ Future<void> main() async {
   //   androidNotificationOngoing: true,
   // );
   WidgetsFlutterBinding.ensureInitialized();
-  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
+  ]);
   // await Alarm.init();
   await _initLocalNotification();
   tz.initializeTimeZones();
