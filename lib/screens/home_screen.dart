@@ -209,12 +209,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             children: [
               SizedBox(
                 width: layout.leftRegion,
-                // scaleDown: 다이얼이 세로 가용 높이를 넘칠 때만 축소(apple/wash),
-                // 들어오면 원본 유지(school). 중앙 정렬 유지 → 위로 올라가지 않음.
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: _buildDial(context, layout.dialSize),
-                ),
+                child: Center(child: _buildDial(context, layout.dialSize)),
               ),
               Expanded(
                 child: Column(
@@ -303,10 +298,14 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       }
 
       // 가로: 다이얼 왼쪽 / 텍스트+버튼 오른쪽
-      final layout = computeLandscapeLayout(width: maxWidth, height: maxHeight);
+      // 다이얼은 SafeArea 안에 놓이므로, 세로 가용 높이(안전영역 제외)를 기준으로 크기를 잡아
+      // chrono 이미지 종횡비(≈1.02배 높이)까지 감안해도 넘치지 않게 한다.
+      final EdgeInsets safe = MediaQuery.of(context).padding;
+      final double availableHeight = maxHeight - safe.top - safe.bottom;
+      final layout = computeLandscapeLayout(width: maxWidth, height: availableHeight);
       final double landscapeNumberHeight = math.min(
         layout.rightRegion * 0.85 / (100 / 10.5), // 타이머 폭을 패널의 약 85%에 맞춤
-        maxHeight * 0.14, // 높이 상한
+        availableHeight * 0.14, // 높이 상한
       );
       return Scaffold(
         backgroundColor: skin.backgroundColor,
