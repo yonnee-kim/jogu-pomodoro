@@ -215,11 +215,17 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Transform.translate(
-                      offset: Offset(0, skin.timerOffsetY),
-                      child: TimerWidget(numberHeight: numberHeight),
+                    // TimerWidget의 오버레이 박스(숫자 높이의 약 4.86배)가 세로 중앙정렬을
+                    // 틀어지게 하므로, 레이아웃 높이는 숫자 크기에 맞추고 박스는 넘치게 렌더링한다.
+                    SizedBox(
+                      height: numberHeight * 1.6,
+                      child: OverflowBox(
+                        alignment: Alignment.center,
+                        maxHeight: double.infinity,
+                        child: TimerWidget(numberHeight: numberHeight),
+                      ),
                     ),
-                    SizedBox(height: numberHeight * 0.4),
+                    SizedBox(height: numberHeight * 0.6),
                     const BottomButtonWidet(landscape: true),
                   ],
                 ),

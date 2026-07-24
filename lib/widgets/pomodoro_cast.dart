@@ -131,7 +131,7 @@ class _PomodoroCastState extends State<PomodoroCast> {
     double angle = context.watch<AngleProvider>().angle;
 
     return Column(
-      // mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Stack(
           alignment: Alignment.center,
