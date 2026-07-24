@@ -315,7 +315,9 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 }
 
 class BottomButtonWidet extends StatefulWidget {
-  const BottomButtonWidet({super.key});
+  const BottomButtonWidet({super.key, this.landscape = false});
+
+  final bool landscape;
 
   @override
   State<BottomButtonWidet> createState() => _BottomButtonWidetState();
@@ -354,31 +356,54 @@ class _BottomButtonWidetState extends State<BottomButtonWidet> {
     Timer? myTimer = context.watch<DataProvider>().myTimer;
     final skin = context.watch<ThemeProvider>().currentSkin;
 
+    // 스타트 스탑
+    final Widget playStopButton = GestureDetector(
+      onTap: () {
+        HapticFeedback.mediumImpact();
+        if (myTimer != null && myTimer.isActive) {
+          context.read<DataProvider>().cancleTimer();
+          context.read<DataProvider>().setIsStarted(false);
+        } else {
+          context.read<DataProvider>().setMyTimer(context);
+          if (context.read<DataProvider>().startSec > 0) {
+            context.read<DataProvider>().setIsStarted(true);
+          }
+        }
+      },
+      child: Image.asset(
+        myTimer != null && myTimer.isActive ? (skin.stopButtonAsset ?? 'assets/img/stop.png') : (skin.playButtonAsset ?? 'assets/img/play.png'),
+        width: 60,
+      ),
+    );
+
+    // 테마 변경
+    final Widget changeButton = GestureDetector(
+      onTap: () async {
+        HapticFeedback.mediumImpact();
+        await context.read<ThemeProvider>().addThemeIndex();
+      },
+      child: Image.asset(skin.changeButtonAsset ?? 'assets/img/change.png', width: 60),
+    );
+
+    if (widget.landscape) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          playStopButton,
+          const SizedBox(width: 28),
+          changeButton,
+        ],
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 35),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // 스타트 스탑
-          GestureDetector(
-            onTap: () {
-              HapticFeedback.mediumImpact();
-              if (myTimer != null && myTimer.isActive) {
-                context.read<DataProvider>().cancleTimer();
-                context.read<DataProvider>().setIsStarted(false);
-              } else {
-                context.read<DataProvider>().setMyTimer(context);
-                if (context.read<DataProvider>().startSec > 0) {
-                  context.read<DataProvider>().setIsStarted(true);
-                }
-              }
-            },
-            child: Image.asset(
-              myTimer != null && myTimer.isActive ? (skin.stopButtonAsset ?? 'assets/img/stop.png') : (skin.playButtonAsset ?? 'assets/img/play.png'),
-              width: 60,
-            ),
-          ),
-          // 테스트 버튼
+          playStopButton,
+          // 테스트 버튼 (기존 비활성 데드코드 — 그대로 보존)
           if (false)
             GestureDetector(
               onTap: () async {
@@ -407,15 +432,7 @@ class _BottomButtonWidetState extends State<BottomButtonWidet> {
                 ),
               ),
             ),
-
-          // 테마 변경
-          GestureDetector(
-            onTap: () async {
-              HapticFeedback.mediumImpact();
-              await context.read<ThemeProvider>().addThemeIndex();
-            },
-            child: Image.asset(skin.changeButtonAsset ?? 'assets/img/change.png', width: 60),
-          ),
+          changeButton,
         ],
       ),
     );
