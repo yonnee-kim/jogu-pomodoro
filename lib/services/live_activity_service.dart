@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:live_activities/live_activities.dart';
 import 'package:live_activities/models/url_scheme_data.dart';
 
@@ -19,8 +20,14 @@ class LiveActivityService {
 
   Future<void> init() async {
     if (!Platform.isIOS) return;
-    await _plugin.init(appGroupId: appGroupId, urlScheme: urlScheme);
-    _initialized = true;
+    try {
+      await _plugin.init(appGroupId: appGroupId, urlScheme: urlScheme);
+      _initialized = true;
+      // TODO(debug): 실기기 검증 후 진단 로그 제거
+      debugPrint('[LA] init 성공 / enabled=${await _plugin.areActivitiesEnabled()}');
+    } catch (e) {
+      debugPrint('[LA] init 실패: $e');
+    }
   }
 
   Stream<UrlSchemeData> get urlSchemeStream => Platform.isIOS
@@ -28,8 +35,13 @@ class LiveActivityService {
       : const Stream<UrlSchemeData>.empty();
 
   Future<bool> _enabled() async {
-    if (!Platform.isIOS || !_initialized) return false;
-    return _plugin.areActivitiesEnabled();
+    if (!Platform.isIOS || !_initialized) {
+      debugPrint('[LA] 차단: isIOS=${Platform.isIOS} initialized=$_initialized');
+      return false;
+    }
+    final enabled = await _plugin.areActivitiesEnabled();
+    if (!enabled) debugPrint('[LA] 차단: areActivitiesEnabled=false');
+    return enabled;
   }
 
   /// 실행 중 상태로 시작(없으면 생성) 또는 갱신.
@@ -39,13 +51,19 @@ class LiveActivityService {
   }) async {
     if (!await _enabled()) return;
     final data = buildRunningPayload(endDate: endDate, label: label);
-    if (_activityId == null) {
-      _activityId = await _plugin.createActivity(
-        DateTime.now().millisecondsSinceEpoch.toString(),
-        data,
-      );
-    } else {
-      await _plugin.updateActivity(_activityId!, data);
+    try {
+      if (_activityId == null) {
+        _activityId = await _plugin.createActivity(
+          DateTime.now().millisecondsSinceEpoch.toString(),
+          data,
+        );
+        debugPrint('[LA] createActivity 반환 id=$_activityId / data=$data');
+      } else {
+        await _plugin.updateActivity(_activityId!, data);
+        debugPrint('[LA] updateActivity id=$_activityId');
+      }
+    } catch (e) {
+      debugPrint('[LA] 활동 생성/갱신 실패: $e');
     }
   }
 
