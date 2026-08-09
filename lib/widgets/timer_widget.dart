@@ -6,13 +6,21 @@ import 'package:provider/provider.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
 class TimerWidget extends StatelessWidget {
-  const TimerWidget({super.key});
+  const TimerWidget({super.key, this.numberHeight});
+
+  final double? numberHeight;
 
   @override
   Widget build(BuildContext context) {
     final skin = context.watch<ThemeProvider>().currentSkin;
 
-    double numberHeight = 10.5.w;
+    final double unit = numberHeight ?? 10.5.w;
+    final double overlayHeight = unit * (51 / 10.5);
+    final double overlayWidth = unit * (100 / 10.5);
+    final double offsetX = unit * (-0.8 / 10.5);
+    final double offsetY = unit * (2.3 / 10.5);
+    final double digitGap = unit * (0.8 / 10.5);
+    final double colonPad = unit * (3 / 10.5);
     int currentSec = context.watch<DataProvider>().currSec;
     int minutes = currentSec ~/ 60;
     int seconds = currentSec % 60;
@@ -44,13 +52,13 @@ class TimerWidget extends StatelessWidget {
             selector: (context, dataProvider) => dataProvider.isStarted,
             builder: (context, isStarted, child) {
               return SizedBox(
-                height: 51.w,
-                width: 100.w,
+                height: overlayHeight,
+                width: overlayWidth,
                 child: skin.timerOverlayBuilder != null ? skin.timerOverlayBuilder!(isStarted) : null,
               );
             }),
         Transform.translate(
-          offset: Offset(-0.8.w, 2.3.w),
+          offset: Offset(offsetX, offsetY),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -60,15 +68,15 @@ class TimerWidget extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Image(image: numberMap[minutes1], color: skin.numberTintColor, height: numberHeight),
-                    SizedBox(width: 0.8.w),
-                    Image(image: numberMap[minutes2], color: skin.numberTintColor, height: numberHeight),
+                    Image(image: numberMap[minutes1], color: skin.numberTintColor, height: unit),
+                    SizedBox(width: digitGap),
+                    Image(image: numberMap[minutes2], color: skin.numberTintColor, height: unit),
                   ],
                 ),
               ),
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: 3.w),
-                child: Image.asset('assets/img/colon.png', color: skin.numberTintColor, height: numberHeight),
+                padding: EdgeInsets.symmetric(horizontal: colonPad),
+                child: Image.asset('assets/img/colon.png', color: skin.numberTintColor, height: unit),
               ),
               Flexible(
                 flex: 1,
@@ -76,9 +84,9 @@ class TimerWidget extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    Image(image: numberMap[seconds1], color: skin.numberTintColor, height: numberHeight),
-                    SizedBox(width: 0.8.w),
-                    Image(image: numberMap[seconds2], color: skin.numberTintColor, height: numberHeight),
+                    Image(image: numberMap[seconds1], color: skin.numberTintColor, height: unit),
+                    SizedBox(width: digitGap),
+                    Image(image: numberMap[seconds2], color: skin.numberTintColor, height: unit),
                   ],
                 ),
               ),
