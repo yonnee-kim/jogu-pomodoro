@@ -13,7 +13,9 @@
 - Task 1~4 완료 — Dart 계층 전체(payload/딥링크 파서, 서비스 래퍼, DataProvider 훅, 앱 초기화·버튼 연결).
 - Task 5 완료 — Widget Extension 타겟, App Group, URL scheme, Info.plist. 빌드 페이즈 순환 의존성도 해소.
 - Task 6 완료 — 위젯 UI 작성 및 컴파일 검증(`flutter build ios --debug --no-codesign` 성공, appex가 `Runner.app/PlugIns/`에 embed됨).
-- **남은 것**: Task 6 Step 3의 실기기 수동 검증, Task 7(버전 `1.0.7+20` 범프 및 문서).
+- 실기기 검증 완료 — 잠금화면에 카운트다운·라벨·버튼이 정상 표시되고 취소 동작 확인.
+- **남은 것**: Task 7(버전 `1.0.7+20` 범프 및 문서), 그리고 아래 후속 과제.
+- **후속 과제(별도 브랜치)**: ⏸/▶ 버튼이 딥링크 방식이라 앱이 열린다. iOS 17+ `LiveActivityIntent`로 전환하면 앱을 열지 않고 처리할 수 있다. `LiveActivityIntent`는 익스텐션이 아니라 **앱 프로세스**에서 실행되므로 예약된 종료 알림 취소·재예약도 가능하다(Intent 파일을 Runner 타겟에도 포함시켜야 함). 실제 비용은 알림이 아니라 Dart 타이머와 Swift 상태의 동기화 쪽에 있다.
 - 실제 생성된 이름: 폴더는 `ios/LiveActivity/`, 타겟·스킴·appex·entitlements는 모두 `LiveActivityExtension`.
 
 ## Global Constraints
@@ -597,6 +599,13 @@ Xcode에서 `ios/Runner.xcworkspace` 열기 → File > New > Target > **Widget E
 ```
 `ios/Runner/Runner.entitlements`가 비어 있던 `<dict/>`였다면 위 키를 가진 `<dict>...</dict>`로 채워졌는지 확인.
 
+- [ ] **Step 3-1: Push Notifications capability 추가 (Runner 타겟에만)**
+
+`Runner` 타겟 > Signing & Capabilities > + Capability > **Push Notifications**. `LiveActivity` 익스텐션에는 추가하지 않는다.
+결과로 `ios/Runner/Runner.entitlements`에 `aps-environment` 키가 생긴다.
+
+**이 단계는 필수다.** `live_activities` 패키지는 내부적으로 `Activity.request(..., pushType: .token)`으로 요청하므로 push entitlement가 없으면 활동 생성이 실패한다. entitlements 파일을 직접 편집하지 말고 반드시 capability로 추가해야 프로비저닝 프로파일에도 반영된다.
+
 - [ ] **Step 4: Runner Info.plist에 NSSupportsLiveActivities + URL scheme 추가**
 
 `ios/Runner/Info.plist`의 최상위 `<dict>` 안에 추가:
@@ -706,6 +715,12 @@ Error (Xcode): Cycle inside Runner; building could produce unreliable results.
 ```
 Expected: 빌드 성공. 앱 실행 → 타이머 시작 → 잠금화면/Dynamic Island에 "타이머" 최소 위젯이 뜨는지 확인(카운트다운·버튼은 Task 6에서).
 주의: Live Activity는 시뮬레이터 제약이 있어 **실기기 확인 필수**.
+
+**entitlements를 바꾼 뒤에는 기기에서 앱을 완전히 삭제하고 재설치한다.** 덮어쓰기 설치로는 변경된 entitlements와 embed된 appex가 반영되지 않아, 설정이 모두 올바른데도 다음 에러로 활동 생성이 실패한다.
+```
+PlatformException(LIVE_ACTIVITY_ERROR, can't launch live activity,
+com.apple.ActivityKit.ActivityInput 오류 0.)
+```
 
 - [ ] **Step 8: 커밋**
 
