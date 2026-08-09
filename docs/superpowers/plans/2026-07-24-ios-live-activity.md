@@ -8,6 +8,14 @@
 
 **Tech Stack:** Flutter/Dart, `live_activities` 패키지, Swift/SwiftUI(ActivityKit, WidgetKit), App Group UserDefaults, easy_localization, Provider.
 
+## 진행 현황 (2026-08-09)
+
+- Task 1~4 완료 — Dart 계층 전체(payload/딥링크 파서, 서비스 래퍼, DataProvider 훅, 앱 초기화·버튼 연결).
+- Task 5 완료 — Widget Extension 타겟, App Group, URL scheme, Info.plist. 빌드 페이즈 순환 의존성도 해소.
+- Task 6 완료 — 위젯 UI 작성 및 컴파일 검증(`flutter build ios --debug --no-codesign` 성공, appex가 `Runner.app/PlugIns/`에 embed됨).
+- **남은 것**: Task 6 Step 3의 실기기 수동 검증, Task 7(버전 `1.0.7+20` 범프 및 문서).
+- 실제 생성된 이름: 폴더는 `ios/LiveActivity/`, 타겟·스킴·appex·entitlements는 모두 `LiveActivityExtension`.
+
 ## Global Constraints
 
 - iOS 전용 기능. iOS 16.1+에서 Live Activity 표시. 버튼(⏸/✕)은 iOS 17.0+에서만 노출·동작. Android는 이번 범위 밖(no-op).
@@ -29,6 +37,8 @@
 - Modify `assets/translations/*.json` — `live_activity_title` 키 추가.
 - Modify `pubspec.yaml` — `live_activities` 의존성 추가, 버전 `1.0.7+20`.
 - Create (Xcode GUI) Widget Extension 타겟 `LiveActivity` — Swift 3파일 + Info.plist + entitlements.
+  - Xcode 26 기준 실제 생성 결과: 타겟/폴더는 `LiveActivity`, 스킴과 entitlements 파일만 `LiveActivityExtension` 이름이 붙어 `ios/LiveActivityExtension.entitlements`에 생성된다.
+  - `ios/LiveActivity/`는 `PBXFileSystemSynchronizedRootGroup`(폴더 자동 동기화)으로 등록되므로, 폴더 안의 Swift 파일은 추가·삭제만 해도 타겟 멤버십이 자동 반영된다. `project.pbxproj`를 직접 편집할 필요가 없다.
 - Modify `ios/Runner/Info.plist`, `ios/Runner/Runner.entitlements` — NSSupportsLiveActivities, URL scheme, App Group.
 - Create test `test/services/live_activity_payload_test.dart`.
 
@@ -550,7 +560,12 @@ git commit -m "feat: Live Activity 딥링크 처리 및 앱 초기화/버튼 연
 **Files:**
 - Create (Xcode 템플릿 후 내용 교체): `ios/LiveActivity/LiveActivitiesAppAttributes.swift`, `ios/LiveActivity/LiveActivityBundle.swift`, `ios/LiveActivity/JogumanTimerLiveActivity.swift`(내용은 Task 6), `ios/LiveActivity/Info.plist`
 - Modify: `ios/Runner/Info.plist`, `ios/Runner/Runner.entitlements`
-- Create: `ios/LiveActivity/LiveActivity.entitlements`
+- Create: `ios/LiveActivityExtension.entitlements` (Xcode가 `ios/` 루트에 이 이름으로 생성한다)
+
+**Xcode 26 템플릿 실제 생성물 정리:**
+- 템플릿은 `LiveActivity.swift`(홈스크린 위젯), `LiveActivityControl.swift`(제어 센터 위젯), `LiveActivityLiveActivity.swift`(Live Activity), `LiveActivityBundle.swift`를 만든다.
+- 앞의 3개는 삭제하고 위 **Files**의 이름으로 새로 만든다. 폴더 자동 동기화 덕분에 pbxproj 편집은 불필요하다.
+- `LiveActivityControl.swift`는 반드시 삭제해야 한다. iOS 18 전용 `ControlWidget`/`SetValueIntent`를 availability 가드 없이 쓰므로 배포 타겟 16.1에서 컴파일 에러가 난다.
 
 **Interfaces:**
 - Consumes: Task 1이 정한 payload 키(`endDateMs`/`isPaused`/`remainingSeconds`/`label`), App Group `group.com.joguman.pomodoro`, URL scheme `joguman`.
@@ -558,7 +573,12 @@ git commit -m "feat: Live Activity 딥링크 처리 및 앱 초기화/버튼 연
 
 - [ ] **Step 1: Widget Extension 타겟 생성**
 
-Xcode에서 `ios/Runner.xcworkspace` 열기 → File > New > Target > **Widget Extension** 선택 → Product Name: `LiveActivity`, "Include Live Activity" 체크, "Include Configuration App Intent" 체크 해제 → Finish → "Activate scheme?"는 Cancel. 생성 폴더가 `ios/LiveActivity/`인지 확인.
+Xcode에서 `ios/Runner.xcworkspace` 열기 → File > New > Target > **Widget Extension** 선택 → Product Name: `LiveActivity`, "Include Live Activity" 체크, "Include Configuration App Intent" 체크 해제 → Finish → "Activate scheme?" 다이얼로그에서 **Don't Activate**. 생성 폴더가 `ios/LiveActivity/`인지 확인.
+
+- 워크스페이스는 반드시 **절대경로로** 연다. 여러 워크트리를 쓰는 경우 다른 체크아웃의 워크스페이스를 열어 엉뚱한 브랜치에 타겟이 생기기 쉽다.
+- 스킴 이름은 Xcode가 자동으로 `LiveActivityExtension`으로 만든다(타겟명 `LiveActivity`와 다름, 정상).
+- **Don't Activate**를 눌러야 하는 이유: 스킴을 활성화하면 빌드 대상이 익스텐션으로 바뀌어 `flutter run`/`flutter build`의 Runner 스킴 흐름과 어긋난다. 익스텐션은 Runner를 빌드할 때 함께 빌드된다.
+- App Groups capability는 **유료 Apple Developer Program 계정**이 필요하다. 무료 Apple ID(personal team)로는 추가할 수 없다.
 
 - [ ] **Step 2: 최소 배포 타겟 설정**
 
@@ -568,7 +588,7 @@ Xcode에서 `ios/Runner.xcworkspace` 열기 → File > New > Target > **Widget E
 
 `Runner` 타겟 > Signing & Capabilities > + Capability > **App Groups** > `group.com.joguman.pomodoro` 추가.
 `LiveActivity` 타겟에도 동일하게 App Groups > `group.com.joguman.pomodoro` 추가.
-결과로 `ios/Runner/Runner.entitlements`와 `ios/LiveActivity/LiveActivity.entitlements`에 아래가 포함되어야 한다:
+결과로 `ios/Runner/Runner.entitlements`와 `ios/LiveActivityExtension.entitlements`에 아래가 포함되어야 한다:
 ```xml
 	<key>com.apple.security.application-groups</key>
 	<array>
@@ -670,6 +690,20 @@ struct JogumanTimerLiveActivity: Widget {
 - [ ] **Step 7: 빌드 확인 (실기기)**
 
 Run: `flutter build ios --debug --no-codesign` 로 컴파일 성공 확인(코드사인 없이 컴파일만). 이후 실기기 설치는 Xcode에서 개발자 계정으로 Run.
+
+**필수 선행 조치 — 빌드 페이즈 순환 의존성:**
+Xcode가 익스텐션 타겟을 추가하면 `Embed Foundation Extensions` 페이즈를 Runner 빌드 페이즈 **맨 끝**에 붙이는데, 그대로 두면 다음 에러로 빌드가 실패한다.
+```
+Error (Xcode): Cycle inside Runner; building could produce unreliable results.
+→ appex를 Runner.app/PlugIns/로 복사 → [CP] Copy Pods Resources → [CP] Embed Pods
+   Frameworks → Thin Binary → Runner.app/Info.plist 산출 → 다시 appex 복사(순환)
+```
+해결: Runner 타겟의 `Embed Foundation Extensions`를 **`Thin Binary` 앞**(`Embed Frameworks` 바로 뒤)으로 옮긴다. Xcode의 Build Phases 탭에서 드래그하거나 `project.pbxproj`의 Runner `buildPhases` 배열에서 해당 줄을 이동하면 된다. 최종 순서:
+```
+[CP] Check Pods Manifest.lock → Run Script → Sources → Frameworks → Resources
+→ Embed Frameworks → Embed Foundation Extensions → Thin Binary
+→ [CP] Embed Pods Frameworks → [CP] Copy Pods Resources
+```
 Expected: 빌드 성공. 앱 실행 → 타이머 시작 → 잠금화면/Dynamic Island에 "타이머" 최소 위젯이 뜨는지 확인(카운트다운·버튼은 Task 6에서).
 주의: Live Activity는 시뮬레이터 제약이 있어 **실기기 확인 필수**.
 
