@@ -31,7 +31,15 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   static const bool _debugAspectRatio = false; // false로 바꾸면 슬라이더 숨김
   double _aspectRatio = 1 / 1.95;
 
-  NeverScrollableScrollPhysics? pageScrollPhysics = const NeverScrollableScrollPhysics();
+  // ── 가로모드 전용 크기 배수 (세로에는 영향 없음, 상세값은 조절) ──
+  static const double _lsFootScale = 0.97; // head.png(공룡 머리) — 낮추면 축소
+  static const double _lsSchoolOverlayScale = 0.85; // school 건물 이미지 — 낮추면 축소
+  static const double _lsSchoolOverlayLift =
+      0.05; // school 건물 위로 밀기(clockSize 비율) — 키우면 중심에서 멀어짐
+  static const double _lsDialOffsetY = 0.0; // 다이얼 세로 위치(px) — 양수=아래로, 음수=위로
+
+  NeverScrollableScrollPhysics? pageScrollPhysics =
+      const NeverScrollableScrollPhysics();
   bool isGranted = false;
   bool isLongPressed = false;
   bool isLoaded = false;
@@ -131,13 +139,17 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     });
   }
 
-  Widget _buildDial(BuildContext context, double clockSize) {
+  Widget _buildDial(BuildContext context, double clockSize,
+      {double footScale = 1.0,
+      double overlayScale = 1.0,
+      double overlayLift = 0.0}) {
     themeIndex = context.watch<ThemeProvider>().themeIndex; // 기존 State 필드 재사용
 
     final pomodoroList = skinConfigs.map((config) {
       Widget motionWidget = config.motionWidgetBuilder();
       if (config.centerAnimationScale != null) {
-        motionWidget = Transform.scale(scale: config.centerAnimationScale!, child: motionWidget);
+        motionWidget = Transform.scale(
+            scale: config.centerAnimationScale!, child: motionWidget);
       }
 
       return PomodoroCast(
@@ -153,7 +165,8 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         dialShadowColor: config.dialShadowColor,
         clockHandFootYOffset: config.clockHandFootOffset * clockSize,
         clockHandFootRotatesWithDial: config.clockHandFootRotatesWithDial,
-        clockHandFoot: Image.asset(config.clockHandFootAsset, width: config.clockHandFootWidth * clockSize),
+        clockHandFoot: Image.asset(config.clockHandFootAsset,
+            width: config.clockHandFootWidth * clockSize * footScale),
         centerAnimation: Container(
           width: (clockSize) * 0.75 - 40,
           height: (clockSize) * 0.75 - 40,
@@ -161,12 +174,23 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: config.centerBackgroundColor,
-            boxShadow: [BoxShadow(color: config.centerShadowColor, blurRadius: config.centerShadowBlur, spreadRadius: config.centerShadowSpread)],
+            boxShadow: [
+              BoxShadow(
+                  color: config.centerShadowColor,
+                  blurRadius: config.centerShadowBlur,
+                  spreadRadius: config.centerShadowSpread)
+            ],
           ),
           child: motionWidget,
         ),
         timerPainterBuilder: config.timerPainterBuilder,
-        dialOverlayBuilder: config.dialOverlayBuilder,
+        dialOverlayBuilder: config.dialOverlayBuilder == null
+            ? null
+            : (cs) => Transform.translate(
+                offset: Offset(0, -overlayLift * cs), // 양수=위로(중심에서 멀어짐)
+                child: Transform.scale(
+                    scale: overlayScale,
+                    child: config.dialOverlayBuilder!(cs))),
         dialBackgroundBuilder: config.dialBackgroundBuilder,
       );
     }).toList();
@@ -191,25 +215,36 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             onPressed: () async {
               await getPermissionWithNotification();
             },
-            icon: const Icon(Icons.notifications, color: Color.fromARGB(255, 149, 149, 149), size: 30),
+            icon: const Icon(Icons.notifications,
+                color: Color.fromARGB(255, 149, 149, 149), size: 30),
           )
         ],
       ),
     );
   }
 
-  Widget _buildLandscapeContent(BuildContext context, LandscapeLayout layout, double numberHeight) {
+  Widget _buildLandscapeContent(BuildContext context, LandscapeLayout layout,
+      double numberHeight, double dialOffsetY) {
     final skin = context.watch<ThemeProvider>().currentSkin;
 
     return Stack(
       children: [
-        if (skin.backgroundBuilder != null) Positioned.fill(child: skin.backgroundBuilder!()),
+        if (skin.backgroundBuilder != null)
+          Positioned.fill(child: skin.backgroundBuilder!()),
         SafeArea(
           child: Row(
             children: [
               SizedBox(
                 width: layout.leftRegion,
-                child: Center(child: _buildDial(context, layout.dialSize)),
+                child: Center(
+                  child: Transform.translate(
+                    offset: Offset(0, dialOffsetY), // 자동 중앙보정 + 수동 미세조정
+                    child: _buildDial(context, layout.dialSize,
+                        footScale: _lsFootScale,
+                        overlayScale: _lsSchoolOverlayScale,
+                        overlayLift: _lsSchoolOverlayLift),
+                  ),
+                ),
               ),
               Expanded(
                 child: Column(
@@ -225,7 +260,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         child: TimerWidget(numberHeight: numberHeight),
                       ),
                     ),
-                    SizedBox(height: numberHeight * 0.6),
+                    SizedBox(height: numberHeight * 1.5),
                     const BottomButtonWidet(landscape: true),
                   ],
                 ),
@@ -235,7 +270,8 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ),
         if (!isGranted)
           SafeArea(
-            child: Align(alignment: Alignment.topRight, child: _notificationButton()),
+            child: Align(
+                alignment: Alignment.topRight, child: _notificationButton()),
           ),
       ],
     );
@@ -246,7 +282,8 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     return Stack(
       children: [
-        if (skin.backgroundBuilder != null) Positioned.fill(child: skin.backgroundBuilder!()),
+        if (skin.backgroundBuilder != null)
+          Positioned.fill(child: skin.backgroundBuilder!()),
         SafeArea(
           top: true,
           child: Center(
@@ -292,7 +329,9 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         return Scaffold(
           backgroundColor: skin.backgroundColor,
           body: !isLoaded
-              ? const Center(child: CircularProgressIndicator(color: Color.fromARGB(255, 189, 189, 189)))
+              ? const Center(
+                  child: CircularProgressIndicator(
+                      color: Color.fromARGB(255, 189, 189, 189)))
               : _buildContent(context, clockSize),
         );
       }
@@ -302,16 +341,24 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       // chrono 이미지 종횡비(≈1.02배 높이)까지 감안해도 넘치지 않게 한다.
       final EdgeInsets safe = MediaQuery.of(context).padding;
       final double availableHeight = maxHeight - safe.top - safe.bottom;
-      final layout = computeLandscapeLayout(width: maxWidth, height: availableHeight);
+      final layout = computeLandscapeLayout(
+          width: maxWidth, height: availableHeight, dialHeightFactor: 0.95);
       final double landscapeNumberHeight = math.min(
-        layout.rightRegion * 0.85 / (100 / 10.5), // 타이머 폭을 패널의 약 85%에 맞춤
-        availableHeight * 0.14, // 높이 상한
-      );
+            layout.rightRegion * 0.85 / (100 / 10.5), // 타이머 폭을 패널의 약 85%에 맞춤
+            availableHeight * 0.14, // 높이 상한
+          ) *
+          1.2; // 가로 타이머 텍스트 확대 배수
+      // 다이얼은 SafeArea 안에서 중앙정렬되는데, 상/하 안전여백이 다르면(보통 하단이 큼)
+      // SafeArea 중심이 화면 중심보다 위로 치우친다. 그 차이의 절반만큼 자동으로 내려 실제 화면 중앙에 맞춘다.
+      final double dialOffsetY = (safe.bottom - safe.top) / 2 + _lsDialOffsetY;
       return Scaffold(
         backgroundColor: skin.backgroundColor,
         body: !isLoaded
-            ? const Center(child: CircularProgressIndicator(color: Color.fromARGB(255, 189, 189, 189)))
-            : _buildLandscapeContent(context, layout, landscapeNumberHeight),
+            ? const Center(
+                child: CircularProgressIndicator(
+                    color: Color.fromARGB(255, 189, 189, 189)))
+            : _buildLandscapeContent(
+                context, layout, landscapeNumberHeight, dialOffsetY),
       );
     }
 
@@ -319,7 +366,9 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     return Scaffold(
       backgroundColor: skin.backgroundColor,
       body: !isLoaded
-          ? const Center(child: CircularProgressIndicator(color: Color.fromARGB(255, 189, 189, 189)))
+          ? const Center(
+              child: CircularProgressIndicator(
+                  color: Color.fromARGB(255, 189, 189, 189)))
           : Stack(
               children: [
                 SafeArea(
@@ -346,7 +395,8 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   left: 12,
                   right: 12,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: Colors.black54,
                       borderRadius: BorderRadius.circular(8),
@@ -355,7 +405,8 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       children: [
                         Text(
                           '1:${(1 / _aspectRatio).toStringAsFixed(2)}',
-                          style: const TextStyle(color: Colors.white, fontSize: 12),
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 12),
                         ),
                         Expanded(
                           child: Slider(
@@ -369,7 +420,8 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           onTap: () => setState(() => _aspectRatio = 1 / 1.95),
                           child: const Text(
                             '초기화',
-                            style: TextStyle(color: Colors.white70, fontSize: 11),
+                            style:
+                                TextStyle(color: Colors.white70, fontSize: 11),
                           ),
                         ),
                       ],
@@ -392,6 +444,8 @@ class BottomButtonWidet extends StatefulWidget {
 }
 
 class _BottomButtonWidetState extends State<BottomButtonWidet> {
+  static const double _lsButtonGap = 55; // 가로모드 버튼 사이 간격(px) — 키우면 넓어짐
+  static const double _lsButtonSize = 60; // 가로모드 버튼 크기(px) — 키우면 커짐 (세로는 60 고정)
   DateTime limitDate = DateTime(2025, 5, 24);
   final player = AudioPlayer();
   bool isTapped = false;
@@ -424,6 +478,8 @@ class _BottomButtonWidetState extends State<BottomButtonWidet> {
     Timer? myTimer = context.watch<DataProvider>().myTimer;
     final skin = context.watch<ThemeProvider>().currentSkin;
 
+    final double buttonSize = widget.landscape ? _lsButtonSize : 60; // 가로만 조절
+
     // 스타트 스탑
     final Widget playStopButton = GestureDetector(
       onTap: () {
@@ -439,8 +495,10 @@ class _BottomButtonWidetState extends State<BottomButtonWidet> {
         }
       },
       child: Image.asset(
-        myTimer != null && myTimer.isActive ? (skin.stopButtonAsset ?? 'assets/img/stop.png') : (skin.playButtonAsset ?? 'assets/img/play.png'),
-        width: 60,
+        myTimer != null && myTimer.isActive
+            ? (skin.stopButtonAsset ?? 'assets/img/stop.png')
+            : (skin.playButtonAsset ?? 'assets/img/play.png'),
+        width: buttonSize,
       ),
     );
 
@@ -450,7 +508,8 @@ class _BottomButtonWidetState extends State<BottomButtonWidet> {
         HapticFeedback.mediumImpact();
         await context.read<ThemeProvider>().addThemeIndex();
       },
-      child: Image.asset(skin.changeButtonAsset ?? 'assets/img/change.png', width: 60),
+      child: Image.asset(skin.changeButtonAsset ?? 'assets/img/change.png',
+          width: buttonSize),
     );
 
     if (widget.landscape) {
@@ -459,7 +518,7 @@ class _BottomButtonWidetState extends State<BottomButtonWidet> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           playStopButton,
-          const SizedBox(width: 28),
+          const SizedBox(width: _lsButtonGap),
           changeButton,
         ],
       );
@@ -476,13 +535,18 @@ class _BottomButtonWidetState extends State<BottomButtonWidet> {
             GestureDetector(
               onTap: () async {
                 String bodyText = 'end_message'.tr();
-                DateTime alarmDate = DateTime.now().add(const Duration(seconds: 3));
+                DateTime alarmDate =
+                    DateTime.now().add(const Duration(seconds: 3));
                 // waitMS(1 * 1000).then(
                 //   (value) async {
                 //     setVibration();
                 //   },
                 // );
-                await setScheduleNotification(dateTime: alarmDate, title: 'app_name'.tr(), body: bodyText, type: 'alarm');
+                await setScheduleNotification(
+                    dateTime: alarmDate,
+                    title: 'app_name'.tr(),
+                    body: bodyText,
+                    type: 'alarm');
                 // setShowNotification(title: 'app_name'.tr(), body: 'end_message'.tr(), playSound: true);
               },
               child: Container(

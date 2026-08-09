@@ -59,7 +59,7 @@ class PomodoroCast extends StatefulWidget {
 }
 
 class _PomodoroCastState extends State<PomodoroCast> {
-  bool isStop = true;
+  bool isStop = true; 
   double newMinutes = 0;
   double positionX = 0;
   double positionY = 0;
