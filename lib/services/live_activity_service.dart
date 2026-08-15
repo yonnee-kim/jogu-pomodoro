@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:live_activities/live_activities.dart';
+import 'package:live_activities/models/live_activity_state.dart';
 
 import 'live_activity_payload.dart';
 
@@ -30,13 +31,33 @@ class LiveActivityService {
     } catch (e) {
       debugPrint('[LA] init 실패: $e');
     }
+    // _activityId는 프로세스 메모리에만 있어 재시작 시 null로 초기화된다.
+    // Live Activity 자체는 앱 종료 후에도 살아남으므로, 기존 활동을 입양하지 않으면
+    // startOrUpdateRunning이 중복 활동을 만들고 end()/updatePaused가 no-op이 된다.
+    try {
+      final existing = await _plugin.getAllActivities();
+      for (final entry in existing.entries) {
+        if (entry.value == LiveActivityState.active) {
+          _activityId = entry.key;
+          debugPrint('[LA] 기존 활동 입양: $_activityId');
+          break;
+        }
+      }
+    } catch (e) {
+      debugPrint('[LA] 기존 활동 입양 실패: $e');
+    }
   }
 
   /// Swift Intent가 남긴 동기화 스냅샷을 읽고 비운다. 없으면 null.
   Future<Map<String, String>?> consumeSync() async {
     if (!Platform.isIOS) return null;
-    final raw = await _syncChannel.invokeMethod<Map>('consumeSync');
-    return raw?.map((k, v) => MapEntry(k.toString(), v.toString()));
+    try {
+      final raw = await _syncChannel.invokeMethod<Map>('consumeSync');
+      return raw?.map((k, v) => MapEntry(k.toString(), v.toString()));
+    } catch (e) {
+      debugPrint('[LA] consumeSync 실패: $e');
+      return null;
+    }
   }
 
   /// 앱 실행 중 버튼이 눌렸을 때 네이티브가 보내는 핑 수신.

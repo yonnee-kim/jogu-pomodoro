@@ -47,7 +47,12 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     WakelockPlus.enable();
     initFunc();
-    LiveActivityService.instance.setNativePingListener(() => _syncFromNative());
+    LiveActivityService.instance.setNativePingListener(() {
+      // 백그라운드 상태에서 소비하면 스냅샷이 사라져 이후 resumed 복원이 불가능해진다.
+      // 포그라운드일 때만 즉시 소비하고, 그 외에는 resumed의 _syncFromNative에 맡긴다.
+      if (WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) return;
+      _syncFromNative();
+    });
   }
 
   initFunc() async {
