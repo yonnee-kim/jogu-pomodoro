@@ -26,8 +26,6 @@ class LiveActivityService {
     try {
       await _plugin.init(appGroupId: appGroupId);
       _initialized = true;
-      // TODO(debug): 실기기 검증 후 진단 로그 제거
-      debugPrint('[LA] init 성공 / enabled=${await _plugin.areActivitiesEnabled()}');
     } catch (e) {
       debugPrint('[LA] init 실패: $e');
     }
@@ -39,7 +37,6 @@ class LiveActivityService {
       for (final entry in existing.entries) {
         if (entry.value == LiveActivityState.active) {
           _activityId = entry.key;
-          debugPrint('[LA] 기존 활동 입양: $_activityId');
           break;
         }
       }
@@ -69,13 +66,8 @@ class LiveActivityService {
   }
 
   Future<bool> _enabled() async {
-    if (!Platform.isIOS || !_initialized) {
-      debugPrint('[LA] 차단: isIOS=${Platform.isIOS} initialized=$_initialized');
-      return false;
-    }
-    final enabled = await _plugin.areActivitiesEnabled();
-    if (!enabled) debugPrint('[LA] 차단: areActivitiesEnabled=false');
-    return enabled;
+    if (!Platform.isIOS || !_initialized) return false;
+    return _plugin.areActivitiesEnabled();
   }
 
   /// 실행 중 상태로 시작(없으면 생성) 또는 갱신.
@@ -98,10 +90,8 @@ class LiveActivityService {
           DateTime.now().millisecondsSinceEpoch.toString(),
           data,
         );
-        debugPrint('[LA] createActivity 반환 id=$_activityId / data=$data');
       } else {
         await _plugin.updateActivity(_activityId!, data);
-        debugPrint('[LA] updateActivity id=$_activityId');
       }
     } catch (e) {
       debugPrint('[LA] 활동 생성/갱신 실패: $e');
