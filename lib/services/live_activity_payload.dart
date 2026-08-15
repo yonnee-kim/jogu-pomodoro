@@ -1,18 +1,32 @@
-/// Live Activity 페이로드 생성 및 딥링크 파싱 (순수 함수).
+/// Live Activity 페이로드 생성, 제어 액션 파싱, 네이티브 동기화 해석 (순수 함수).
 /// App Group UserDefaults는 문자열만 저장하므로 모든 값을 문자열로 변환한다.
 
 enum LiveActivityAction { pause, resume, cancel, unknown }
 
+enum ReconcileKind { none, pausedAway, runningAway, finishedAway, cancelledAway }
+
+class ReconcileResult {
+  final ReconcileKind kind;
+  final int newMillisec;
+  const ReconcileResult(this.kind, this.newMillisec);
+}
+
 /// 실행 중(카운트다운) 상태 페이로드.
+/// notifTitle/notifBody는 위젯 버튼(재개)이 앱 프로세스의 Swift Intent에서
+/// 종료 알림을 재예약할 때 사용한다.
 Map<String, dynamic> buildRunningPayload({
   required DateTime endDate,
   required String label,
+  required String notifTitle,
+  required String notifBody,
 }) {
   return {
     'endDateMs': endDate.millisecondsSinceEpoch.toString(),
     'isPaused': 'false',
     'remainingSeconds': '0',
     'label': label,
+    'notifTitle': notifTitle,
+    'notifBody': notifBody,
   };
 }
 
@@ -29,16 +43,39 @@ Map<String, dynamic> buildPausedPayload({
   };
 }
 
-/// 딥링크 path(예: '/pause')를 액션으로 변환.
-LiveActivityAction parseLiveActivityAction(String path) {
-  switch (path) {
-    case '/pause':
+/// 네이티브가 전달한 액션명('pause'|'resume'|'cancel')을 변환.
+LiveActivityAction parseLiveActivityAction(String name) {
+  switch (name) {
+    case 'pause':
       return LiveActivityAction.pause;
-    case '/resume':
+    case 'resume':
       return LiveActivityAction.resume;
-    case '/cancel':
+    case 'cancel':
       return LiveActivityAction.cancel;
     default:
       return LiveActivityAction.unknown;
+  }
+}
+
+/// Swift Intent가 남긴 동기화 스냅샷을 Dart 타이머 상태 변화로 해석한다.
+ReconcileResult reconcileFromSync({
+  required LiveActivityAction action,
+  required int endDateMs,
+  required int remainingMs,
+  required DateTime now,
+}) {
+  switch (action) {
+    case LiveActivityAction.pause:
+      return ReconcileResult(ReconcileKind.pausedAway, remainingMs);
+    case LiveActivityAction.resume:
+      final remaining = endDateMs - now.millisecondsSinceEpoch;
+      if (remaining > 0) {
+        return ReconcileResult(ReconcileKind.runningAway, remaining);
+      }
+      return const ReconcileResult(ReconcileKind.finishedAway, 0);
+    case LiveActivityAction.cancel:
+      return const ReconcileResult(ReconcileKind.cancelledAway, 0);
+    case LiveActivityAction.unknown:
+      return const ReconcileResult(ReconcileKind.none, 0);
   }
 }

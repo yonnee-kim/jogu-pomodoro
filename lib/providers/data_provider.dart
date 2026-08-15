@@ -115,6 +115,8 @@ class DataProvider with ChangeNotifier {
       LiveActivityService.instance.startOrUpdateRunning(
         endDate: alarmDate,
         label: 'live_activity_title'.tr(),
+        notifTitle: 'app_name'.tr(),
+        notifBody: 'end_message'.tr(),
       );
     } else {
       currSec = 0;

@@ -48,9 +48,16 @@ class LiveActivityService {
   Future<void> startOrUpdateRunning({
     required DateTime endDate,
     required String label,
+    required String notifTitle,
+    required String notifBody,
   }) async {
     if (!await _enabled()) return;
-    final data = buildRunningPayload(endDate: endDate, label: label);
+    final data = buildRunningPayload(
+      endDate: endDate,
+      label: label,
+      notifTitle: notifTitle,
+      notifBody: notifBody,
+    );
     try {
       if (_activityId == null) {
         _activityId = await _plugin.createActivity(
