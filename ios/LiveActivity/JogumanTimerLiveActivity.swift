@@ -1,4 +1,5 @@
 import ActivityKit
+import AppIntents
 import SwiftUI
 import WidgetKit
 
@@ -71,20 +72,33 @@ struct JogumanTimerLiveActivity: Widget {
     if #available(iOS 17.0, *) {
       let isPaused = (sharedDefault.string(forKey: context.attributes.prefixedKey("isPaused")) ?? "false") == "true"
       HStack(spacing: 12) {
-        Link(destination: URL(string: isPaused ? "joguman:///resume" : "joguman:///pause")!) {
-          Image(systemName: isPaused ? "play.fill" : "pause.fill")
-            .foregroundColor(.white)
-            .frame(width: 44, height: 44)
-            .background(Color.orange)
-            .clipShape(Circle())
+        if isPaused {
+          Button(intent: ResumeTimerIntent()) {
+            Image(systemName: "play.fill")
+              .foregroundColor(.white)
+              .frame(width: 44, height: 44)
+              .background(Color.orange)
+              .clipShape(Circle())
+          }
+          .buttonStyle(.plain)
+        } else {
+          Button(intent: PauseTimerIntent()) {
+            Image(systemName: "pause.fill")
+              .foregroundColor(.white)
+              .frame(width: 44, height: 44)
+              .background(Color.orange)
+              .clipShape(Circle())
+          }
+          .buttonStyle(.plain)
         }
-        Link(destination: URL(string: "joguman:///cancel")!) {
+        Button(intent: CancelTimerIntent()) {
           Image(systemName: "xmark")
             .foregroundColor(.white)
             .frame(width: 44, height: 44)
             .background(Color.gray.opacity(0.5))
             .clipShape(Circle())
         }
+        .buttonStyle(.plain)
       }
     }
   }
