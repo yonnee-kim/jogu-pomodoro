@@ -25,6 +25,11 @@ enum TimerControlHandler {
     let remainingMs = max(0, Int(endMs - Date().timeIntervalSince1970 * 1000))
     let remainingSec = Int(ceil(Double(remainingMs) / 1000))
 
+    // 이미 일시정지 상태에서 중복 탭 시 endDateMs가 "0"이라 remainingMs가 0으로
+    // 재계산되어 남은 시간을 덮어쓴다. 저장된 남은 시간을 보존하도록 가드.
+    let isPaused = defaults.string(forKey: "\(prefix)_isPaused") == "true"
+    guard !isPaused, remainingMs > 0 else { return }
+
     UNUserNotificationCenter.current()
       .removePendingNotificationRequests(withIdentifiers: [notificationId])
 
@@ -33,7 +38,7 @@ enum TimerControlHandler {
     defaults.set("0", forKey: "\(prefix)_endDateMs")
     writeSync(defaults, action: "pause", endDateMs: 0, remainingMs: remainingMs)
 
-    await activity.update(ActivityContent(state: .init(), staleDate: nil))
+    await activity.update(ActivityContent(state: .init(appGroupId: appGroupId), staleDate: nil))
     notifyApp()
   }
 
@@ -52,7 +57,7 @@ enum TimerControlHandler {
     defaults.set(String(endMs), forKey: "\(prefix)_endDateMs")
     writeSync(defaults, action: "resume", endDateMs: endMs, remainingMs: 0)
 
-    await activity.update(ActivityContent(state: .init(), staleDate: nil))
+    await activity.update(ActivityContent(state: .init(appGroupId: appGroupId), staleDate: nil))
     notifyApp()
   }
 
@@ -61,7 +66,7 @@ enum TimerControlHandler {
     UNUserNotificationCenter.current()
       .removePendingNotificationRequests(withIdentifiers: [notificationId])
     if let activity = currentActivity() {
-      await activity.end(ActivityContent(state: .init(), staleDate: nil),
+      await activity.end(ActivityContent(state: .init(appGroupId: appGroupId), staleDate: nil),
                          dismissalPolicy: .immediate)
     }
     writeSync(defaults, action: "cancel", endDateMs: 0, remainingMs: 0)

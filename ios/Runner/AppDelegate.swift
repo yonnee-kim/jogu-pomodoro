@@ -48,6 +48,8 @@ import flutter_local_notifications
       ) { [weak self] _ in
         self?.liveActivityChannel?.invokeMethod("syncRequested", arguments: nil)
       }
+    } else {
+      NSLog("[LA] FlutterViewController 캐스트 실패 — Live Activity 채널 미설치")
     }
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
