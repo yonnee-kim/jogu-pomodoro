@@ -60,17 +60,19 @@ class PomodoroCast extends StatefulWidget {
 }
 
 class _PomodoroCastState extends State<PomodoroCast> {
-  bool isStop = true;
+  bool isStop = true; 
   double newMinutes = 0;
   double positionX = 0;
   double positionY = 0;
   NeverScrollableScrollPhysics? pageScrollPhysics = const NeverScrollableScrollPhysics();
-  late Offset center; // 다이얼의 중심 위치
+  final GlobalKey _dialKey = GlobalKey();
 
-  @override
-  void initState() {
-    super.initState();
-    center = Offset(widget.clockSize / 2, widget.clockSize / 2);
+  // 타이머 취소(예약 알림 취소 = 플랫폼 채널 호출)와 Live Activity 종료는
+  // 드래그 시작 시 한 번이면 충분하다.
+  // onPanUpdate에서 하면 포인터 이벤트마다 채널을 왕복해 드래그가 버벅인다.
+  void onPanStart(DragStartDetails details) {
+    context.read<DataProvider>().cancleTimer();
+    LiveActivityService.instance.end();
   }
 
   void onPanUpdate(DragUpdateDetails details) {
@@ -78,10 +80,11 @@ class _PomodoroCastState extends State<PomodoroCast> {
     int currSec = context.read<DataProvider>().currSec;
     int minutes = (currSec / 60).round();
 
-    context.read<DataProvider>().cancleTimer();
-    LiveActivityService.instance.end();
-
-    // 현재 손가락 위치와 중심의 위치를 이용해 각도 계산
+    // 현재 손가락 위치와 중심의 위치를 이용해 각도 계산.
+    // 제스처 영역은 clockSize 정사각형이 아니라(폭은 부모 최대폭, 높이는 최대 자식 높이)
+    // 다이얼/분침은 그 박스의 정중앙을 기준으로 배치되므로, 실제 박스 크기에서 중심을 구한다.
+    final RenderBox dialBox = _dialKey.currentContext!.findRenderObject() as RenderBox;
+    final center = dialBox.size.center(Offset.zero);
     final dx = details.localPosition.dx - center.dx;
     final dy = details.localPosition.dy - center.dy;
     angle = atan2(dy, dx) + (pi / 2); // 12시 방향을 기준으로 조정
@@ -139,16 +142,18 @@ class _PomodoroCastState extends State<PomodoroCast> {
     double angle = context.watch<AngleProvider>().angle;
 
     return Column(
-      // mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Stack(
           alignment: Alignment.center,
           children: [
             //남은 시간 표시부
             GestureDetector(
+              onPanStart: onPanStart,
               onPanUpdate: onPanUpdate,
               onPanEnd: onPanEnd,
               child: Stack(
+                key: _dialKey,
                 alignment: Alignment.center,
                 children: [
                   // 다이얼 오버레이 (school: 학교 건물 — chrono 뒤)
