@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:joguman_pomodoro/providers/angle_provider.dart';
+import 'package:joguman_pomodoro/services/live_activity_service.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/data_provider.dart';
@@ -66,10 +67,12 @@ class _PomodoroCastState extends State<PomodoroCast> {
   NeverScrollableScrollPhysics? pageScrollPhysics = const NeverScrollableScrollPhysics();
   final GlobalKey _dialKey = GlobalKey();
 
-  // 타이머 취소(예약 알림 취소 = 플랫폼 채널 호출)는 드래그 시작 시 한 번이면 충분하다.
+  // 타이머 취소(예약 알림 취소 = 플랫폼 채널 호출)와 Live Activity 종료는
+  // 드래그 시작 시 한 번이면 충분하다.
   // onPanUpdate에서 하면 포인터 이벤트마다 채널을 왕복해 드래그가 버벅인다.
   void onPanStart(DragStartDetails details) {
     context.read<DataProvider>().cancleTimer();
+    LiveActivityService.instance.end();
   }
 
   void onPanUpdate(DragUpdateDetails details) {

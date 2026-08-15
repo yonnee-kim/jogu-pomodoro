@@ -7,8 +7,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:joguman_pomodoro/screens/landscape_layout.dart';
 import 'package:joguman_pomodoro/skins/skin_registry.dart';
+import 'package:joguman_pomodoro/providers/angle_provider.dart';
 import 'package:joguman_pomodoro/providers/data_provider.dart';
 import 'package:joguman_pomodoro/providers/theme_provider.dart';
+import 'package:joguman_pomodoro/services/live_activity_service.dart';
+import 'package:joguman_pomodoro/services/live_activity_payload.dart';
 import 'package:joguman_pomodoro/widgets/pomodoro_cast.dart';
 import 'package:joguman_pomodoro/widgets/timer_widget.dart';
 import 'package:just_audio/just_audio.dart';
@@ -52,6 +55,12 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     WakelockPlus.enable();
     initFunc();
+    LiveActivityService.instance.setNativePingListener(() {
+      // 백그라운드 상태에서 소비하면 스냅샷이 사라져 이후 resumed 복원이 불가능해진다.
+      // 포그라운드일 때만 즉시 소비하고, 그 외에는 resumed의 _syncFromNative에 맡긴다.
+      if (WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) return;
+      _syncFromNative();
+    });
   }
 
   initFunc() async {
@@ -85,6 +94,8 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       context.read<DataProvider>().setLeaveDateTime(currMillisec);
     }
     if (state == AppLifecycleState.resumed) {
+      await _syncFromNative();
+      if (!mounted) return;
       final skin = context.read<ThemeProvider>().currentSkin;
       setTimerByLifecycle(context, state, skin);
       WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -100,8 +111,55 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   Future<void> dispose() async {
     WidgetsBinding.instance.removeObserver(this);
+    LiveActivityService.instance.setNativePingListener(null);
     await WakelockPlus.disable();
     super.dispose();
+  }
+
+  Future<void> _syncFromNative() async {
+    final sync = await LiveActivityService.instance.consumeSync();
+    if (sync == null || !mounted) return;
+    final result = reconcileFromSync(
+      action: parseLiveActivityAction(sync['action'] ?? ''),
+      endDateMs: int.tryParse(sync['endDateMs'] ?? '') ?? 0,
+      remainingMs: int.tryParse(sync['remainingMs'] ?? '') ?? 0,
+      now: DateTime.now(),
+    );
+    if (result.kind == ReconcileKind.none) return;
+    final data = context.read<DataProvider>();
+    data.setLeaveDateTime(null); // 이후 setTimerByLifecycle의 중복 복원 차단
+    switch (result.kind) {
+      case ReconcileKind.pausedAway:
+        data.cancleTimer();
+        data.setCurrSec((result.newMillisec / 1000).ceil(),
+            milliseconds: result.newMillisec);
+        context
+            .read<AngleProvider>()
+            .setAngle(result.newMillisec / 3600000 * 2 * math.pi);
+        break;
+      case ReconcileKind.runningAway:
+        data.setCurrSec((result.newMillisec / 1000).ceil(),
+            milliseconds: result.newMillisec);
+        context
+            .read<AngleProvider>()
+            .setAngle(result.newMillisec / 3600000 * 2 * math.pi);
+        data.setMyTimer(context);
+        break;
+      case ReconcileKind.finishedAway:
+        data.cancleTimer();
+        data.setCurrSec(0, milliseconds: 0);
+        context.read<AngleProvider>().setAngle(0);
+        LiveActivityService.instance.end();
+        break;
+      case ReconcileKind.cancelledAway:
+        data.cancelAndReset();
+        context
+            .read<AngleProvider>()
+            .setAngle(data.startSec / 3600 * 2 * math.pi);
+        break;
+      case ReconcileKind.none:
+        break;
+    }
   }
 
   setAlarmCallBack() {
@@ -485,8 +543,8 @@ class _BottomButtonWidetState extends State<BottomButtonWidet> {
       onTap: () {
         HapticFeedback.mediumImpact();
         if (myTimer != null && myTimer.isActive) {
-          context.read<DataProvider>().cancleTimer();
-          context.read<DataProvider>().setIsStarted(false);
+          // 정지 대신 일시정지: 남은 시간 유지 + Live Activity 일시정지 갱신
+          context.read<DataProvider>().pauseTimer();
         } else {
           context.read<DataProvider>().setMyTimer(context);
           if (context.read<DataProvider>().startSec > 0) {

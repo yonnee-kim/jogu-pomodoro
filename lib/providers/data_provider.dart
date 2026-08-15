@@ -8,6 +8,7 @@ import 'package:joguman_pomodoro/providers/angle_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:sound_mode/utils/ringer_mode_statuses.dart';
 
+import '../services/live_activity_service.dart';
 import '../utility.dart';
 
 class DataProvider with ChangeNotifier {
@@ -48,6 +49,26 @@ class DataProvider with ChangeNotifier {
     }
   }
 
+  /// 일시정지: 타이머 정지(남은 시간 유지) + Live Activity를 일시정지 상태로 갱신.
+  Future<void> pauseTimer() async {
+    cancleTimer();
+    notifyListeners();
+    await LiveActivityService.instance.updatePaused(
+      remainingSeconds: (currMillisec / 1000).ceil(),
+      label: 'live_activity_title'.tr(),
+    );
+  }
+
+  /// 취소: 타이머 종료 + 남은 시간을 시작값(startSec)으로 복원 + Live Activity 제거.
+  /// 다이얼 각도 복원은 context를 가진 호출 측에서 처리한다.
+  Future<void> cancelAndReset() async {
+    cancleTimer();
+    currSec = startSec;
+    currMillisec = startSec * 1000;
+    notifyListeners();
+    await LiveActivityService.instance.end();
+  }
+
   Future<void> setMyTimer(BuildContext context) async {
     double angle = context.read<AngleProvider>().angle;
     if (myTimer != null) cancleTimer();
@@ -84,12 +105,19 @@ class DataProvider with ChangeNotifier {
           }
           if (currMillisec <= 0) {
             isStarted = false;
+            LiveActivityService.instance.end();
             timer.cancel();
           }
         },
       );
       bool isGranted = await checkIsGrantedForNotification();
       if (isGranted) setScheduleNotification(dateTime: alarmDate, title: 'app_name'.tr(), body: 'end_message'.tr(), type: 'alarm');
+      LiveActivityService.instance.startOrUpdateRunning(
+        endDate: alarmDate,
+        label: 'live_activity_title'.tr(),
+        notifTitle: 'app_name'.tr(),
+        notifBody: 'end_message'.tr(),
+      );
     } else {
       currSec = 0;
       if (myTimer != null) cancleTimer();

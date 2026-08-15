@@ -17,6 +17,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.2.3"
+  archive:
+    dependency: transitive
+    description:
+      name: archive
+      sha256: a96e8b390886ee8abb49b7bd3ac8df6f451c621619f52a26e815fdcf568959ff
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.0.9"
   args:
     dependency: transitive
     description:
@@ -206,6 +214,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  flutter_app_group_directory:
+    dependency: transitive
+    description:
+      name: flutter_app_group_directory
+      sha256: "680ef9b2dee84c237cd7bb7fc78bc45867b32556a8a5f0de61278078b9fefd05"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.1.0"
   flutter_cache_manager:
     dependency: transitive
     description:
@@ -325,6 +341,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.1.2"
+  image:
+    dependency: transitive
+    description:
+      name: image
+      sha256: f9881ff4998044947ec38d098bc7c8316ae1186fa786eddffdb867b9bc94dfce
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.8.0"
   intl:
     dependency: "direct main"
     description:
@@ -413,6 +437,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.0"
+  live_activities:
+    dependency: "direct main"
+    description:
+      name: live_activities
+      sha256: d1bbc466ddb0c9eea11d6e3e34673319b5b46bcad03a4997e55769261f643601
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.4.2"
   logging:
     dependency: transitive
     description:
@@ -597,6 +629,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.8"
+  posix:
+    dependency: transitive
+    description:
+      name: posix
+      sha256: bc1bad54ad2b735816e31f8d4600cfde6c7839975085ddfbca48b6c9f7c4044e
+      url: "https://pub.dev"
+    source: hosted
+    version: "6.5.2"
   provider:
     dependency: "direct main"
     description:

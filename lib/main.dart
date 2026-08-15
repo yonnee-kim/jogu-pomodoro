@@ -10,6 +10,7 @@ import 'package:joguman_pomodoro/providers/angle_provider.dart';
 import 'package:joguman_pomodoro/providers/data_provider.dart';
 import 'package:joguman_pomodoro/providers/theme_provider.dart';
 import 'package:joguman_pomodoro/screens/home_screen.dart';
+import 'package:joguman_pomodoro/services/live_activity_service.dart';
 import 'package:provider/provider.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:timezone/data/latest.dart' as tz;
@@ -53,6 +54,7 @@ Future<void> main() async {
   ]);
   // await Alarm.init();
   await _initLocalNotification();
+  await LiveActivityService.instance.init();
   tz.initializeTimeZones();
   await EasyLocalization.ensureInitialized();
   await Hive.openBox('themeBox');
