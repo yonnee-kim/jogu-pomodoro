@@ -10,6 +10,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:gif_view/gif_view.dart';
 import 'package:joguman_pomodoro/providers/angle_provider.dart';
 import 'package:joguman_pomodoro/providers/data_provider.dart';
+import 'package:joguman_pomodoro/services/live_activity_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:sound_mode/sound_mode.dart';
@@ -49,6 +50,7 @@ Future<void> setTimerByLifecycle(BuildContext context, AppLifecycleState state, 
       newSec = 0;
       context.read<DataProvider>().setCurrSec(newSec, milliseconds: newMillisec);
       context.read<AngleProvider>().setAngle(0);
+      LiveActivityService.instance.end();
     } else {
       context.read<DataProvider>().setCurrSec(newSec, milliseconds: newMillisec);
       // 남은 시간에 맞춰 다이얼 각도도 함께 보정 (60분 = 2*pi)

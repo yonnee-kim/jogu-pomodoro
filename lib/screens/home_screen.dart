@@ -19,7 +19,6 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
-import 'package:live_activities/models/url_scheme_data.dart';
 
 import '../utility.dart';
 
@@ -41,7 +40,6 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   bool isLoaded = false;
   bool isComplete = false;
   int themeIndex = 0;
-  StreamSubscription<UrlSchemeData>? _urlSchemeSub;
 
   @override
   void initState() {
@@ -49,9 +47,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     WakelockPlus.enable();
     initFunc();
-    _urlSchemeSub = LiveActivityService.instance.urlSchemeStream.listen((data) {
-      _handleLiveActivityAction(parseLiveActivityAction(data.path ?? ''));
-    });
+    LiveActivityService.instance.setNativePingListener(() => _syncFromNative());
   }
 
   initFunc() async {
@@ -85,6 +81,8 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       context.read<DataProvider>().setLeaveDateTime(currMillisec);
     }
     if (state == AppLifecycleState.resumed) {
+      await _syncFromNative();
+      if (!mounted) return;
       final skin = context.read<ThemeProvider>().currentSkin;
       setTimerByLifecycle(context, state, skin);
       WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -100,27 +98,53 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   Future<void> dispose() async {
     WidgetsBinding.instance.removeObserver(this);
-    await _urlSchemeSub?.cancel();
+    LiveActivityService.instance.setNativePingListener(null);
     await WakelockPlus.disable();
     super.dispose();
   }
 
-  void _handleLiveActivityAction(LiveActivityAction action) {
-    if (!mounted) return;
+  Future<void> _syncFromNative() async {
+    final sync = await LiveActivityService.instance.consumeSync();
+    if (sync == null || !mounted) return;
+    final result = reconcileFromSync(
+      action: parseLiveActivityAction(sync['action'] ?? ''),
+      endDateMs: int.tryParse(sync['endDateMs'] ?? '') ?? 0,
+      remainingMs: int.tryParse(sync['remainingMs'] ?? '') ?? 0,
+      now: DateTime.now(),
+    );
+    if (result.kind == ReconcileKind.none) return;
     final data = context.read<DataProvider>();
-    switch (action) {
-      case LiveActivityAction.pause:
-        data.pauseTimer();
+    data.setLeaveDateTime(null); // 이후 setTimerByLifecycle의 중복 복원 차단
+    switch (result.kind) {
+      case ReconcileKind.pausedAway:
+        data.cancleTimer();
+        data.setCurrSec((result.newMillisec / 1000).ceil(),
+            milliseconds: result.newMillisec);
+        context
+            .read<AngleProvider>()
+            .setAngle(result.newMillisec / 3600000 * 2 * math.pi);
         break;
-      case LiveActivityAction.resume:
+      case ReconcileKind.runningAway:
+        data.setCurrSec((result.newMillisec / 1000).ceil(),
+            milliseconds: result.newMillisec);
+        context
+            .read<AngleProvider>()
+            .setAngle(result.newMillisec / 3600000 * 2 * math.pi);
         data.setMyTimer(context);
-        if (data.startSec > 0) data.setIsStarted(true);
         break;
-      case LiveActivityAction.cancel:
+      case ReconcileKind.finishedAway:
+        data.cancleTimer();
+        data.setCurrSec(0, milliseconds: 0);
+        context.read<AngleProvider>().setAngle(0);
+        LiveActivityService.instance.end();
+        break;
+      case ReconcileKind.cancelledAway:
         data.cancelAndReset();
-        context.read<AngleProvider>().setAngle(data.startSec / 3600 * 2 * math.pi);
+        context
+            .read<AngleProvider>()
+            .setAngle(data.startSec / 3600 * 2 * math.pi);
         break;
-      case LiveActivityAction.unknown:
+      case ReconcileKind.none:
         break;
     }
   }

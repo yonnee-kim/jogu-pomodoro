@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:live_activities/live_activities.dart';
-import 'package:live_activities/models/url_scheme_data.dart';
 
 import 'live_activity_payload.dart';
 
@@ -12,7 +12,9 @@ class LiveActivityService {
   static final LiveActivityService instance = LiveActivityService._();
 
   static const String appGroupId = 'group.com.joguman.pomodoro';
-  static const String urlScheme = 'joguman';
+
+  static const MethodChannel _syncChannel =
+      MethodChannel('com.joguman.pomodoro/live_activity');
 
   final LiveActivities _plugin = LiveActivities();
   String? _activityId;
@@ -21,7 +23,7 @@ class LiveActivityService {
   Future<void> init() async {
     if (!Platform.isIOS) return;
     try {
-      await _plugin.init(appGroupId: appGroupId, urlScheme: urlScheme);
+      await _plugin.init(appGroupId: appGroupId);
       _initialized = true;
       // TODO(debug): 실기기 검증 후 진단 로그 제거
       debugPrint('[LA] init 성공 / enabled=${await _plugin.areActivitiesEnabled()}');
@@ -30,9 +32,20 @@ class LiveActivityService {
     }
   }
 
-  Stream<UrlSchemeData> get urlSchemeStream => Platform.isIOS
-      ? _plugin.urlSchemeStream()
-      : const Stream<UrlSchemeData>.empty();
+  /// Swift Intent가 남긴 동기화 스냅샷을 읽고 비운다. 없으면 null.
+  Future<Map<String, String>?> consumeSync() async {
+    if (!Platform.isIOS) return null;
+    final raw = await _syncChannel.invokeMethod<Map>('consumeSync');
+    return raw?.map((k, v) => MapEntry(k.toString(), v.toString()));
+  }
+
+  /// 앱 실행 중 버튼이 눌렸을 때 네이티브가 보내는 핑 수신.
+  void setNativePingListener(void Function()? onPing) {
+    if (!Platform.isIOS) return;
+    _syncChannel.setMethodCallHandler((call) async {
+      if (call.method == 'syncRequested') onPing?.call();
+    });
+  }
 
   Future<bool> _enabled() async {
     if (!Platform.isIOS || !_initialized) {
