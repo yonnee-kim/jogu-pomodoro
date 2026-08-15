@@ -2,47 +2,64 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:joguman_pomodoro/screens/landscape_layout.dart';
 
 void main() {
-  group('computeLandscapeLayout', () {
-    test('일반 폰 가로(2.2:1)는 정확히 6:4, 다이얼은 높이 기준', () {
-      // W=2200, H=1000 → maxDialByHeight=900, leftRegion=1320(>900 → 확장 없음)
-      final r = computeLandscapeLayout(width: 2200, height: 1000);
-      expect(r.leftRegion, closeTo(1320, 0.001)); // 60%
-      expect(r.rightRegion, closeTo(880, 0.001)); // 40%
-      expect(r.dialSize, closeTo(900, 0.001)); // 높이 0.9
+  group('computeCoverGeometry', () {
+    const double aspect = 2.0; // 이미지 2:1
+
+    test('화면비 == 이미지비: 배경이 화면과 정확히 일치', () {
+      final g = computeCoverGeometry(
+          screenWidth: 2000, screenHeight: 1000, imageAspect: aspect);
+      expect(g.left, 0);
+      expect(g.top, 0);
+      expect(g.width, 2000);
+      expect(g.height, 1000);
     });
 
-    test('태블릿 가로(1.33:1)는 다이얼 영역이 6 이상으로 확장, 버튼 20% 이상', () {
-      // W=1330, H=1000 → maxDialByHeight=900, leftRegion=798(<900)
-      // → leftRegion=min(900, 1330*0.8=1064)=900
-      final r = computeLandscapeLayout(width: 1330, height: 1000);
-      expect(r.leftRegion, closeTo(900, 0.001));
-      expect(r.dialSize, closeTo(900, 0.001)); // 최대높이 도달
-      expect(r.rightRegion, closeTo(430, 0.001));
-      expect(r.rightRegion / 1330, greaterThan(0.2)); // 버튼영역 > 20%
-      expect(r.leftRegion / 1330, greaterThan(0.6)); // 다이얼영역 > 60%
+    test('화면이 이미지보다 가로로 김: 폭 기준 확대, 상하 크롭(top 음수)', () {
+      // W=2400, H=1000 → bgW=2400, bgH=1200, top=-100
+      final g = computeCoverGeometry(
+          screenWidth: 2400, screenHeight: 1000, imageAspect: aspect);
+      expect(g.width, 2400);
+      expect(g.height, closeTo(1200, 0.001));
+      expect(g.left, 0);
+      expect(g.top, closeTo(-100, 0.001));
     });
 
-    test('거의 정사각(1.05:1)은 버튼영역 20% 하한, 다이얼은 최대높이 미달 허용', () {
-      // W=1050, H=1000 → maxDialByHeight=900, leftRegion=630(<900)
-      // → leftRegion=min(900, 1050*0.8=840)=840
-      final r = computeLandscapeLayout(width: 1050, height: 1000);
-      expect(r.leftRegion, closeTo(840, 0.001));
-      expect(r.dialSize, closeTo(840, 0.001)); // 900에 미달(폭 제약)
-      expect(r.rightRegion, closeTo(210, 0.001));
-      expect(r.rightRegion / 1050, closeTo(0.2, 0.001)); // 하한 도달
+    test('화면이 이미지보다 세로로 김: 높이 기준 확대, 좌우 크롭(left 음수)', () {
+      // W=1500, H=1000 → bgH=1000, bgW=2000, left=-250
+      final g = computeCoverGeometry(
+          screenWidth: 1500, screenHeight: 1000, imageAspect: aspect);
+      expect(g.height, 1000);
+      expect(g.width, closeTo(2000, 0.001));
+      expect(g.top, 0);
+      expect(g.left, closeTo(-250, 0.001));
     });
 
-    test('불변식: 다이얼 크기는 항상 높이*0.9 이하, 버튼영역은 항상 폭*0.2 이상', () {
+    test('mapX/mapY: 이미지 비율 좌표 → 화면 좌표 변환', () {
+      final g = computeCoverGeometry(
+          screenWidth: 1500, screenHeight: 1000, imageAspect: aspect);
+      // 이미지 중앙은 항상 화면 중앙
+      expect(g.mapX(0.5), closeTo(750, 0.001));
+      expect(g.mapY(0.5), closeTo(500, 0.001));
+      // 이미지 왼쪽 끝은 크롭되어 화면 밖
+      expect(g.mapX(0.0), closeTo(-250, 0.001));
+    });
+
+    test('불변식: 배경은 항상 화면을 덮고(양방향 >=), 중앙 정렬', () {
       for (final wh in [
-        [1600, 900],
-        [2400, 1080],
-        [1194, 834],
-        [2000, 1000]
+        [2400, 1000],
+        [1500, 1000],
+        [2000, 1000],
+        [844, 390],
       ]) {
-        final r = computeLandscapeLayout(width: wh[0].toDouble(), height: wh[1].toDouble());
-        expect(r.dialSize, lessThanOrEqualTo(wh[1] * 0.9 + 0.001));
-        expect(r.rightRegion, greaterThanOrEqualTo(wh[0] * 0.2 - 0.001));
-        expect(r.leftRegion + r.rightRegion, closeTo(wh[0].toDouble(), 0.001));
+        final g = computeCoverGeometry(
+            screenWidth: wh[0].toDouble(),
+            screenHeight: wh[1].toDouble(),
+            imageAspect: 2869 / 1321);
+        expect(g.width, greaterThanOrEqualTo(wh[0].toDouble()));
+        expect(g.height, greaterThanOrEqualTo(wh[1].toDouble()));
+        expect(g.width / g.height, closeTo(2869 / 1321, 0.001)); // 비율 보존
+        expect(g.left * 2 + g.width, closeTo(wh[0].toDouble(), 0.001));
+        expect(g.top * 2 + g.height, closeTo(wh[1].toDouble(), 0.001));
       }
     });
   });
