@@ -21,6 +21,14 @@ class LiveActivityService {
   String? _activityId;
   bool _initialized = false;
 
+  // AlarmKit(iOS 26+) 경로: 사용 가능 + 권한 허용일 때만 라우팅. 권한이 미결정이면
+  // 타이머 첫 시작 시 _ensureAlarmKit()이 시스템 프롬프트로 요청하고, 거부 시
+  // 기존 live_activities 경로로 폴백한다.
+  bool _alarmkitAvailable = false;
+  bool? _alarmkitAuthorized;
+
+  bool get _alarmkitMode => _alarmkitAvailable && _alarmkitAuthorized == true;
+
   Future<void> init() async {
     if (!Platform.isIOS) return; // Android는 사전 초기화 불필요(상태는 네이티브 prefs가 소유)
     try {
@@ -28,6 +36,18 @@ class LiveActivityService {
       _initialized = true;
     } catch (e) {
       debugPrint('[LA] init 실패: $e');
+    }
+    try {
+      _alarmkitAvailable =
+          await _syncChannel.invokeMethod<bool>('alarmkitAvailable') ?? false;
+      if (_alarmkitAvailable) {
+        final state =
+            await _syncChannel.invokeMethod<String>('alarmkitAuthState');
+        if (state == 'authorized') _alarmkitAuthorized = true;
+        if (state == 'denied') _alarmkitAuthorized = false;
+      }
+    } catch (e) {
+      debugPrint('[LA] AlarmKit 상태 조회 실패: $e');
     }
     // _activityId는 프로세스 메모리에만 있어 재시작 시 null로 초기화된다.
     // Live Activity 자체는 앱 종료 후에도 살아남으므로, 기존 활동을 입양하지 않으면
@@ -70,19 +90,35 @@ class LiveActivityService {
     return _plugin.areActivitiesEnabled();
   }
 
+  /// AlarmKit 권한 확인(미결정이면 시스템 프롬프트). 결과를 캐시한다.
+  Future<bool> _ensureAlarmKit() async {
+    if (!_alarmkitAvailable) return false;
+    if (_alarmkitAuthorized != null) return _alarmkitAuthorized!;
+    try {
+      _alarmkitAuthorized =
+          await _syncChannel.invokeMethod<bool>('alarmkitEnsureAuth') ?? false;
+    } catch (e) {
+      debugPrint('[LA] AlarmKit 권한 요청 실패: $e');
+      _alarmkitAuthorized = false;
+    }
+    return _alarmkitAuthorized!;
+  }
+
   /// 실행 중 상태로 시작(없으면 생성) 또는 갱신.
-  /// totalLabel/pauseLabel/resumeLabel/cancelLabel은 Android 알림 표시용(iOS 경로에서는 무시).
-  Future<void> startOrUpdateRunning({
+  /// 반환값 true = 네이티브(AlarmKit)가 0초 종료 알럿을 전담하므로
+  /// 호출 측은 로컬 종료 알림을 예약하지 않아야 한다.
+  /// totalLabel/cancelLabel은 Android 알림 표시용, stopLabel은 AlarmKit 알럿용.
+  Future<bool> startOrUpdateRunning({
     required DateTime endDate,
     required int totalSeconds,
     required String label,
-    required String doneLabel,
     required String notifTitle,
     required String notifBody,
     String totalLabel = '',
     String pauseLabel = '',
     String resumeLabel = '',
     String cancelLabel = '',
+    String stopLabel = '',
   }) async {
     if (Platform.isAndroid) {
       try {
@@ -102,17 +138,33 @@ class LiveActivityService {
       } catch (e) {
         debugPrint('[LA] Android 알림 시작 실패: $e');
       }
-      return;
+      return false;
     }
+    if (!Platform.isIOS) return false;
     // 앱 내 시작 시점의 미소비 sync 스냅샷은 정의상 stale — 복귀 시 낡은 스냅샷이
     // 새 타이머를 덮어쓰지 않도록 폐기한다 (Android는 네이티브 start 핸들러에서 동일 처리).
     await consumeSync();
-    if (!await _enabled()) return;
+    if (await _ensureAlarmKit()) {
+      try {
+        final ok = await _syncChannel.invokeMethod<bool>('alarmkitStart', {
+          'endDateMs': endDate.millisecondsSinceEpoch,
+          'label': label,
+          'alertTitle': notifBody,
+          'stopLabel': stopLabel,
+          'pauseLabel': pauseLabel,
+          'resumeLabel': resumeLabel,
+        });
+        if (ok == true) return true;
+      } catch (e) {
+        debugPrint('[LA] AlarmKit 시작 실패: $e');
+      }
+      // 실패 시 기존 경로로 폴백
+    }
+    if (!await _enabled()) return false;
     final data = buildRunningPayload(
       endDate: endDate,
       totalSeconds: totalSeconds,
       label: label,
-      doneLabel: doneLabel,
       notifTitle: notifTitle,
       notifBody: notifBody,
     );
@@ -125,13 +177,10 @@ class LiveActivityService {
       } else {
         await _plugin.updateActivity(_activityId!, data);
       }
-      // 만료 시각에 위젯이 stale로 재렌더링되어 '끝!' 표시로 전환되도록
-      // 정확한 staleDate를 네이티브에서 지정한다 (플러그인 API는 분 단위라 미사용).
-      await _syncChannel.invokeMethod(
-          'setStaleDate', {'endDateMs': endDate.millisecondsSinceEpoch});
     } catch (e) {
       debugPrint('[LA] 활동 생성/갱신 실패: $e');
     }
+    return false;
   }
 
   /// 일시정지 상태로 갱신.
@@ -152,6 +201,15 @@ class LiveActivityService {
       }
       return;
     }
+    if (!Platform.isIOS) return;
+    if (_alarmkitMode) {
+      try {
+        await _syncChannel.invokeMethod('alarmkitPause');
+      } catch (e) {
+        debugPrint('[LA] AlarmKit 일시정지 실패: $e');
+      }
+      return;
+    }
     if (!await _enabled() || _activityId == null) return;
     await _plugin.updateActivity(
       _activityId!,
@@ -160,16 +218,12 @@ class LiveActivityService {
           totalSeconds: totalSeconds,
           label: label),
     );
-    // 일시정지 중에는 만료가 없으므로 staleDate 해제 (endDateMs 0 = nil).
-    try {
-      await _syncChannel.invokeMethod('setStaleDate', {'endDateMs': 0});
-    } catch (e) {
-      debugPrint('[LA] staleDate 해제 실패: $e');
-    }
   }
 
   /// 활동 종료 및 제거.
-  Future<void> end() async {
+  /// natural이 true(0초 자연종료)면 AlarmKit 경로에서는 알람을 건드리지 않는다 —
+  /// 만료 시각에 시스템 알럿이 울려야 하고, 중지 시 위젯 정리도 시스템이 한다.
+  Future<void> end({bool natural = false}) async {
     if (Platform.isAndroid) {
       try {
         await _syncChannel.invokeMethod('end');
@@ -181,6 +235,15 @@ class LiveActivityService {
     if (!Platform.isIOS) return;
     // 앱 내 종료 시점의 미소비 스냅샷도 stale — start와 동일하게 폐기.
     await consumeSync();
+    if (_alarmkitMode) {
+      if (natural) return;
+      try {
+        await _syncChannel.invokeMethod('alarmkitCancel');
+      } catch (e) {
+        debugPrint('[LA] AlarmKit 취소 실패: $e');
+      }
+      return;
+    }
     if (_activityId == null) return;
     final id = _activityId!;
     _activityId = null;

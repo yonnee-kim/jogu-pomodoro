@@ -24,6 +24,9 @@ class DataProvider with ChangeNotifier {
   bool isAlarm = false;
   AppLifecycleState lifecycleState = AppLifecycleState.resumed;
 
+  /// true = AlarmKit(iOS 26+)이 0초 종료 알럿을 전담 — 로컬 알림/진동 특례 생략.
+  bool _nativeEndAlert = false;
+
   setLifecycleState(AppLifecycleState state) {
     lifecycleState = state;
   }
@@ -88,7 +91,8 @@ class DataProvider with ChangeNotifier {
           }
           currMillisec = newMillisec;
           if (currMillisec == 1000) {
-            if (lifecycleState == AppLifecycleState.resumed) {
+            if (!_nativeEndAlert &&
+                lifecycleState == AppLifecycleState.resumed) {
               DateTime now = DateTime.now();
               await checkSoundMode();
               if (ringerStatus == RingerModeStatus.vibrate) {
@@ -106,18 +110,15 @@ class DataProvider with ChangeNotifier {
           }
           if (currMillisec <= 0) {
             isStarted = false;
-            LiveActivityService.instance.end();
+            LiveActivityService.instance.end(natural: true);
             timer.cancel();
           }
         },
       );
-      bool isGranted = await checkIsGrantedForNotification();
-      if (isGranted) setScheduleNotification(dateTime: alarmDate, title: 'app_name'.tr(), body: 'end_message'.tr(), type: 'alarm');
-      LiveActivityService.instance.startOrUpdateRunning(
+      _nativeEndAlert = await LiveActivityService.instance.startOrUpdateRunning(
         endDate: alarmDate,
         totalSeconds: startSec,
         label: 'live_activity_title'.tr(),
-        doneLabel: 'la_done'.tr(),
         notifTitle: 'app_name'.tr(),
         notifBody: 'end_message'.tr(),
         totalLabel:
@@ -125,7 +126,12 @@ class DataProvider with ChangeNotifier {
         pauseLabel: 'la_pause'.tr(),
         resumeLabel: 'la_resume'.tr(),
         cancelLabel: 'la_cancel'.tr(),
+        stopLabel: 'la_stop'.tr(),
       );
+      if (!_nativeEndAlert) {
+        bool isGranted = await checkIsGrantedForNotification();
+        if (isGranted) setScheduleNotification(dateTime: alarmDate, title: 'app_name'.tr(), body: 'end_message'.tr(), type: 'alarm');
+      }
     } else {
       currSec = 0;
       if (myTimer != null) cancleTimer();
