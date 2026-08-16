@@ -1,7 +1,7 @@
 {
     "app_name" : "Joguman Pomodoro Timer",
     "end_message" : "🦕 : Time's up! Let's take a short break.",
-    "live_activity_title" : "Focus",
+    "live_activity_title" : "Timer",
     "la_pause" : "Pause",
     "la_resume" : "Resume",
     "la_cancel" : "Cancel",

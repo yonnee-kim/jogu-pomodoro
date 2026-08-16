@@ -74,6 +74,7 @@ class LiveActivityService {
   /// totalLabel/pauseLabel/resumeLabel/cancelLabel은 Android 알림 표시용(iOS 경로에서는 무시).
   Future<void> startOrUpdateRunning({
     required DateTime endDate,
+    required int totalSeconds,
     required String label,
     required String notifTitle,
     required String notifBody,
@@ -105,6 +106,7 @@ class LiveActivityService {
     if (!await _enabled()) return;
     final data = buildRunningPayload(
       endDate: endDate,
+      totalSeconds: totalSeconds,
       label: label,
       notifTitle: notifTitle,
       notifBody: notifBody,
@@ -126,6 +128,7 @@ class LiveActivityService {
   /// 일시정지 상태로 갱신.
   Future<void> updatePaused({
     required int remainingSeconds,
+    required int totalSeconds,
     required String label,
   }) async {
     if (Platform.isAndroid) {
@@ -143,7 +146,10 @@ class LiveActivityService {
     if (!await _enabled() || _activityId == null) return;
     await _plugin.updateActivity(
       _activityId!,
-      buildPausedPayload(remainingSeconds: remainingSeconds, label: label),
+      buildPausedPayload(
+          remainingSeconds: remainingSeconds,
+          totalSeconds: totalSeconds,
+          label: label),
     );
   }
 

@@ -16,6 +16,7 @@ class ReconcileResult {
 /// 종료 알림을 재예약할 때 사용한다.
 Map<String, dynamic> buildRunningPayload({
   required DateTime endDate,
+  required int totalSeconds,
   required String label,
   required String notifTitle,
   required String notifBody,
@@ -24,6 +25,7 @@ Map<String, dynamic> buildRunningPayload({
     'endDateMs': endDate.millisecondsSinceEpoch.toString(),
     'isPaused': 'false',
     'remainingSeconds': '0',
+    'totalSeconds': totalSeconds.toString(),
     'label': label,
     'notifTitle': notifTitle,
     'notifBody': notifBody,
@@ -33,12 +35,14 @@ Map<String, dynamic> buildRunningPayload({
 /// 일시정지 상태 페이로드. remainingSeconds로 고정 표시.
 Map<String, dynamic> buildPausedPayload({
   required int remainingSeconds,
+  required int totalSeconds,
   required String label,
 }) {
   return {
     'endDateMs': '0',
     'isPaused': 'true',
     'remainingSeconds': remainingSeconds.toString(),
+    'totalSeconds': totalSeconds.toString(),
     'label': label,
   };
 }

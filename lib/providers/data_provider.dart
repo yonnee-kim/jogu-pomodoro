@@ -55,6 +55,7 @@ class DataProvider with ChangeNotifier {
     notifyListeners();
     await LiveActivityService.instance.updatePaused(
       remainingSeconds: (currMillisec / 1000).ceil(),
+      totalSeconds: startSec,
       label: 'live_activity_title'.tr(),
     );
   }
@@ -114,6 +115,7 @@ class DataProvider with ChangeNotifier {
       if (isGranted) setScheduleNotification(dateTime: alarmDate, title: 'app_name'.tr(), body: 'end_message'.tr(), type: 'alarm');
       LiveActivityService.instance.startOrUpdateRunning(
         endDate: alarmDate,
+        totalSeconds: startSec,
         label: 'live_activity_title'.tr(),
         notifTitle: 'app_name'.tr(),
         notifBody: 'end_message'.tr(),
