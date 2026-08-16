@@ -1,5 +1,7 @@
 // ignore_for_file: use_build_context_synchronously
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:gif_view/gif_view.dart';
 import 'package:joguman_pomodoro/providers/data_provider.dart';
@@ -63,6 +65,7 @@ class _WashMotionWidgetState extends State<WashMotionWidget> {
       controller.seek(0);
       if (finished == WashState.activate) {
         await Future.delayed(const Duration(milliseconds: 1));
+        if (!mounted) return;
         controller.play();
       }
     } else {
@@ -71,6 +74,21 @@ class _WashMotionWidgetState extends State<WashMotionWidget> {
     }
     if (!mounted) return;
     setState(() => _state = next);
+  }
+
+  /// GIF 디코딩 완료 전에 전환이 걸려 play()가 무시된 경우를 복구한다.
+  /// gif_view 1.0.2의 onLoaded는 GifController.configure() 이전에 호출되어
+  /// 이 시점엔 아직 frames가 비어 있다 — 여기서 바로 play()를 불러도 무시된다.
+  /// configure() 완료 후(다음 마이크로태스크)로 미뤄 놓친 play()를 복구한다.
+  void _onGifLoaded(WashState loaded) {
+    scheduleMicrotask(() {
+      if (!mounted) return;
+      if (_state != loaded) return;
+      final controller = _controllerOf(loaded);
+      if (!controller.isPlaying) {
+        controller.play();
+      }
+    });
   }
 
   @override
@@ -93,20 +111,24 @@ class _WashMotionWidgetState extends State<WashMotionWidget> {
                 callback: () => _onFinish(WashState.blink),
                 controller: controllerBlink,
                 autoPlay: _initialState == WashState.blink,
-                loop: true),
+                loop: true,
+                onLoaded: () => _onGifLoaded(WashState.blink)),
             MyGif(
                 image: 'assets/gif/wash/wash_start.gif',
                 callback: () => _onFinish(WashState.start),
-                controller: controllerStart),
+                controller: controllerStart,
+                onLoaded: () => _onGifLoaded(WashState.start)),
             MyGif(
                 image: 'assets/gif/wash/wash_activate.gif',
                 callback: () => _onFinish(WashState.activate),
                 controller: controllerActivate,
-                autoPlay: _initialState == WashState.activate),
+                autoPlay: _initialState == WashState.activate,
+                onLoaded: () => _onGifLoaded(WashState.activate)),
             MyGif(
                 image: 'assets/gif/wash/wash_stop.gif',
                 callback: () => _onFinish(WashState.stop),
-                controller: controllerStop),
+                controller: controllerStop,
+                onLoaded: () => _onGifLoaded(WashState.stop)),
           ],
         );
       },

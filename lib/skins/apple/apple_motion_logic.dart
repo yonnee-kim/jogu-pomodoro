@@ -51,3 +51,11 @@ String appleIntroGif(int segment) => 'assets/gif/apple/apple_0$segment.gif';
 
 /// 구간 대기 루프 GIF 경로.
 String appleBlinkGif(int segment) => 'assets/gif/apple/apple_0${segment}_blink.gif';
+
+/// 직전 알림 대비 정상적인 틱 진행인지 (백그라운드 복귀 등 큰 시간 점프 제외).
+/// DataProvider는 재생 중 초당 알림하므로 정상 델타는 0~1000ms 근방이다.
+bool isWitnessedTick({required int? lastMilliSec, required int currentMilliSec}) {
+  if (lastMilliSec == null) return false;
+  final int delta = lastMilliSec - currentMilliSec;
+  return delta >= 0 && delta <= 1500;
+}

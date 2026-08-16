@@ -11,12 +11,14 @@ class MyGif extends StatefulWidget {
     required this.controller,
     this.loop = false,
     this.autoPlay = false,
+    this.onLoaded,
   });
   final String image;
   final Function callback;
   final GifController controller;
   final bool loop;
   final bool autoPlay;
+  final VoidCallback? onLoaded;
 
   @override
   State<MyGif> createState() => _MyGifState();
@@ -41,6 +43,7 @@ class _MyGifState extends State<MyGif> {
       },
       fadeDuration: Duration.zero,
       autoPlay: widget.autoPlay,
+      onLoaded: (_) => widget.onLoaded?.call(),
       progressBuilder: (context) => Image.asset('assets/img/wash/wash_loading.png'),
     );
   }

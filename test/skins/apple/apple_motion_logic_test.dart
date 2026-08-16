@@ -106,4 +106,27 @@ void main() {
       expect(appleBlinkGif(4), 'assets/gif/apple/apple_04_blink.gif');
     });
   });
+
+  group('isWitnessedTick', () {
+    test('직전 값 없음(마운트 직후) → false', () {
+      expect(isWitnessedTick(lastMilliSec: null, currentMilliSec: 40000), false);
+    });
+
+    test('정상 1초 틱 → true', () {
+      expect(isWitnessedTick(lastMilliSec: 40000, currentMilliSec: 39000), true);
+    });
+
+    test('큰 시간 점프(백그라운드 복귀) → false', () {
+      expect(isWitnessedTick(lastMilliSec: 40000, currentMilliSec: 20000), false);
+    });
+
+    test('시간 증가(다이얼 재설정 등) → false', () {
+      expect(isWitnessedTick(lastMilliSec: 20000, currentMilliSec: 40000), false);
+    });
+
+    test('경계 1500ms까지 허용', () {
+      expect(isWitnessedTick(lastMilliSec: 40000, currentMilliSec: 38500), true);
+      expect(isWitnessedTick(lastMilliSec: 40000, currentMilliSec: 38499), false);
+    });
+  });
 }

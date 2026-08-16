@@ -14,6 +14,7 @@ class AppleMotionWidget extends StatefulWidget {
 class _AppleMotionWidgetState extends State<AppleMotionWidget> {
   Timer? _introTimer;
   int? _lastSegment; // 직전 빌드에서 목격한 구간 (null = 방금 마운트 → 인트로 생략)
+  int? _lastMillisec; // 직전 빌드에서 목격한 currMillisec — 백그라운드 복귀 등 큰 점프 판별용
   bool _wasStarted = false;
   bool _showingIntro = false;
 
@@ -47,8 +48,10 @@ class _AppleMotionWidgetState extends State<AppleMotionWidget> {
     if (data.isStarted) {
       final bool freshStart =
           !_wasStarted && data.currMillisec == data.startSec * 1000;
-      final bool crossedBoundary =
-          _lastSegment != null && segment != _lastSegment;
+      final bool crossedBoundary = _lastSegment != null &&
+          segment != _lastSegment &&
+          isWitnessedTick(
+              lastMilliSec: _lastMillisec, currentMilliSec: data.currMillisec);
       if (segment != 1 && (freshStart || crossedBoundary)) {
         _startIntro(segment);
       }
@@ -57,6 +60,7 @@ class _AppleMotionWidgetState extends State<AppleMotionWidget> {
       _showingIntro = false;
     }
     _lastSegment = segment;
+    _lastMillisec = data.currMillisec;
     _wasStarted = data.isStarted;
 
     final String imgUrl;
