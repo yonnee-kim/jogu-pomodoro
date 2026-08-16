@@ -16,54 +16,6 @@ int getGifDurationMilliSec(String imgUrl) {
   return (_frameGap * frames).round() * 1000;
 }
 
-/// 타이머 진행 중 현재 milliSec에 맞는 GIF 경로를 반환한다.
-/// currentGif이 이미 올바른 상태면 그대로 반환 (불필요한 setState 방지).
-String getAppleGifForProgress({
-  required int startSec,
-  required int currentMilliSec,
-  required String currentGif,
-}) {
-  if (currentMilliSec <= 0) {
-    return 'assets/gif/apple/apple_01.gif';
-  }
-
-  int twoThirdMs = (startSec * 2 / 3).round() * 1000;
-  int oneThirdMs = (startSec * 1 / 3).round() * 1000;
-
-  // 2/3 ~ 1 구간
-  if (currentMilliSec > twoThirdMs) {
-    if (currentMilliSec == startSec * 1000) {
-      return 'assets/gif/apple/apple_02.gif';
-    }
-    if (currentMilliSec < startSec * 1000 - getGifDurationMilliSec(currentGif) &&
-        currentGif != 'assets/gif/apple/apple_02_blink.gif') {
-      return 'assets/gif/apple/apple_02_blink.gif';
-    }
-  }
-  // 1/3 ~ 2/3 구간
-  else if (currentMilliSec > oneThirdMs) {
-    if (currentMilliSec == twoThirdMs) {
-      return 'assets/gif/apple/apple_03.gif';
-    }
-    if (currentMilliSec < twoThirdMs - getGifDurationMilliSec(currentGif) &&
-        currentGif != 'assets/gif/apple/apple_03_blink.gif') {
-      return 'assets/gif/apple/apple_03_blink.gif';
-    }
-  }
-  // 0 ~ 1/3 구간
-  else if (currentMilliSec > 0) {
-    if (currentMilliSec == oneThirdMs) {
-      return 'assets/gif/apple/apple_04.gif';
-    }
-    if (currentMilliSec < oneThirdMs - getGifDurationMilliSec(currentGif) &&
-        currentGif != 'assets/gif/apple/apple_04_blink.gif') {
-      return 'assets/gif/apple/apple_04_blink.gif';
-    }
-  }
-
-  return currentGif;
-}
-
 /// 타이머 일시정지 시 현재 남은 시간에 맞는 정지 프레임 GIF를 반환한다.
 String getAppleGifForPause({
   required int startSec,
@@ -81,4 +33,37 @@ String getAppleGifForPause({
   } else {
     return 'assets/gif/apple/apple_01_blink.gif';
   }
+}
+
+/// 남은 시간 기준 현재 구간.
+/// 1: 완료, 2: 남은 시간 2/3 초과, 3: 1/3~2/3, 4: 0~1/3
+int appleSegment({required int startSec, required int currentMilliSec}) {
+  if (currentMilliSec <= 0) return 1;
+  final int twoThirdMs = (startSec * 2 / 3).round() * 1000;
+  final int oneThirdMs = (startSec * 1 / 3).round() * 1000;
+  if (currentMilliSec > twoThirdMs) return 2;
+  if (currentMilliSec > oneThirdMs) return 3;
+  return 4;
+}
+
+/// 구간 진입을 목격했을 때 1회 재생하는 인트로 GIF 경로.
+String appleIntroGif(int segment) => 'assets/gif/apple/apple_0$segment.gif';
+
+/// 구간 대기 루프 GIF 경로.
+String appleBlinkGif(int segment) => 'assets/gif/apple/apple_0${segment}_blink.gif';
+
+/// 직전 알림 대비 정상적인 틱 진행인지 (백그라운드 복귀 등 큰 시간 점프 제외).
+/// DataProvider는 재생 중 초당 알림하므로 정상 델타는 0~1000ms 근방이다.
+bool isWitnessedTick({required int? lastMilliSec, required int currentMilliSec}) {
+  if (lastMilliSec == null) return false;
+  final int delta = lastMilliSec - currentMilliSec;
+  return delta >= 0 && delta <= 1500;
+}
+
+/// 정지 상태에서 다이얼 재설정을 목격했는지.
+/// 다이얼 스냅은 분 단위(60000ms) 점프인 반면, 재생 중 일시정지로 생기는
+/// 마지막 목격값과의 차이는 1초 미만이라 델타 크기로 구분한다.
+bool isDialAdjusted({required int? lastMilliSec, required int currentMilliSec}) {
+  if (lastMilliSec == null) return false;
+  return (currentMilliSec - lastMilliSec).abs() >= 2000;
 }
