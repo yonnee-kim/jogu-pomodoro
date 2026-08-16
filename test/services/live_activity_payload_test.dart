@@ -8,16 +8,14 @@ void main() {
       final map = buildRunningPayload(
         endDate: end,
         totalSeconds: 2700,
-        label: '집중',
-        doneLabel: '끝!',
+        label: '타이머',
         notifTitle: '알림제목',
         notifBody: '알림본문',
       );
 
       expect(map['endDateMs'], '1700000000000');
       expect(map['isPaused'], 'false');
-      expect(map['label'], '집중');
-      expect(map['doneLabel'], '끝!');
+      expect(map['label'], '타이머');
       expect(map['remainingSeconds'], '0');
       expect(map['totalSeconds'], '2700');
       // 모든 값은 문자열이어야 한다 (App Group UserDefaults 제약)
@@ -28,8 +26,7 @@ void main() {
       final payload = buildRunningPayload(
         endDate: DateTime.fromMillisecondsSinceEpoch(1000),
         totalSeconds: 60,
-        label: '집중',
-        doneLabel: '끝!',
+        label: '타이머',
         notifTitle: '조구만 뽀모도로',
         notifBody: '끝!',
       );
@@ -42,11 +39,11 @@ void main() {
   group('buildPausedPayload', () {
     test('남은 초를 문자열로, isPaused는 true로 담는다', () {
       final map =
-          buildPausedPayload(remainingSeconds: 125, totalSeconds: 300, label: '집중');
+          buildPausedPayload(remainingSeconds: 125, totalSeconds: 300, label: '타이머');
 
       expect(map['isPaused'], 'true');
       expect(map['remainingSeconds'], '125');
-      expect(map['label'], '집중');
+      expect(map['label'], '타이머');
       expect(map['endDateMs'], '0');
       expect(map['totalSeconds'], '300');
       expect(map.values.every((v) => v is String), isTrue);
@@ -102,7 +99,7 @@ void main() {
     test('MethodChannel용 타입 그대로 담는다 (endDateMs는 int)', () {
       final payload = buildAndroidStartPayload(
         endDate: DateTime.fromMillisecondsSinceEpoch(1234567890000),
-        label: '집중',
+        label: '타이머',
         notifTitle: '조구만 뽀모도로 타이머',
         notifBody: '끝!',
         totalLabel: '50분',
@@ -112,7 +109,7 @@ void main() {
       );
       expect(payload, {
         'endDateMs': 1234567890000,
-        'label': '집중',
+        'label': '타이머',
         'notifTitle': '조구만 뽀모도로 타이머',
         'notifBody': '끝!',
         'totalLabel': '50분',
@@ -126,8 +123,8 @@ void main() {
   group('buildAndroidPausedPayload', () {
     test('remainingSeconds는 int로 담는다', () {
       final payload =
-          buildAndroidPausedPayload(remainingSeconds: 2700, label: '집중');
-      expect(payload, {'remainingSeconds': 2700, 'label': '집중'});
+          buildAndroidPausedPayload(remainingSeconds: 2700, label: '타이머');
+      expect(payload, {'remainingSeconds': 2700, 'label': '타이머'});
     });
   });
 }

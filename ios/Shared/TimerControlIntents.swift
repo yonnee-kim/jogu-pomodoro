@@ -57,10 +57,7 @@ enum TimerControlHandler {
     defaults.set(String(endMs), forKey: "\(prefix)_endDateMs")
     writeSync(defaults, action: "resume", endDateMs: endMs, remainingMs: 0)
 
-    // 재개 후 만료 시각에 위젯이 stale('끝!' 표시)로 전환되도록 staleDate 지정
-    await activity.update(ActivityContent(
-      state: .init(appGroupId: appGroupId),
-      staleDate: Date(timeIntervalSince1970: Double(endMs) / 1000.0)))
+    await activity.update(ActivityContent(state: .init(appGroupId: appGroupId), staleDate: nil))
     notifyApp()
   }
 
