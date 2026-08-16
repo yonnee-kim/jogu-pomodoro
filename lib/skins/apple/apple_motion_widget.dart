@@ -12,72 +12,62 @@ class AppleMotionWidget extends StatefulWidget {
 }
 
 class _AppleMotionWidgetState extends State<AppleMotionWidget> {
-  Timer? _debounce;
-  int currMilliSec = 0;
-  String imgUrl = 'assets/gif/apple/apple_01_blink.gif';
-
-  @override
-  void initState() {
-    super.initState();
-    currMilliSec = context.read<DataProvider>().currSec * 1000;
-  }
+  Timer? _introTimer;
+  int? _lastSegment; // 직전 빌드에서 목격한 구간 (null = 방금 마운트 → 인트로 생략)
+  bool _wasStarted = false;
+  bool _showingIntro = false;
 
   @override
   void dispose() {
-    if (_debounce != null && _debounce!.isActive) _debounce!.cancel();
+    _introTimer?.cancel();
     super.dispose();
   }
 
-  setTimer({required int startSec}) {
-    int currSec = context.read<DataProvider>().currSec;
-    currMilliSec = currSec * 1000;
-
-    if (_debounce != null && _debounce!.isActive) _debounce!.cancel();
-    _debounce = Timer.periodic(const Duration(milliseconds: 100), (timer) async {
-      String newGif = getAppleGifForProgress(
-        startSec: startSec,
-        currentMilliSec: currMilliSec,
-        currentGif: imgUrl,
-      );
-      if (newGif != imgUrl) {
-        if (newGif.endsWith('.gif')) {
-          AssetImage(newGif).evict();
-        }
-        imgUrl = newGif;
-        setState(() {});
-      }
-      currMilliSec -= 100;
-      if (currMilliSec <= 0 && _debounce != null) {
-        imgUrl = 'assets/gif/apple/apple_01.gif';
-        _debounce!.cancel();
-        setState(() {});
-      }
-    });
+  void _startIntro(int segment) {
+    _showingIntro = true;
+    final String intro = appleIntroGif(segment);
+    AssetImage(intro).evict(); // 인트로를 프레임 0부터 재생
+    _introTimer?.cancel();
+    _introTimer = Timer(
+      Duration(milliseconds: getGifDurationMilliSec(intro)),
+      () {
+        if (!mounted) return;
+        setState(() => _showingIntro = false);
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Selector<DataProvider, bool>(
-      selector: (context, dataProvider) => dataProvider.isStarted,
-      builder: (context, isStarted, child) {
-        int startSec = context.read<DataProvider>().startSec;
-        if (isStarted) {
-          if (_debounce != null && _debounce!.isActive) {
-          } else {
-            setTimer(startSec: startSec);
-          }
-          return Image.asset(imgUrl, gaplessPlayback: true);
-        } else {
-          if (_debounce != null && _debounce!.isActive) _debounce!.cancel();
+    // DataProvider가 재생 중 초당 notifyListeners()를 호출한다 — 그 알림이 시계 역할
+    final data = context.watch<DataProvider>();
+    final int segment = appleSegment(
+        startSec: data.startSec, currentMilliSec: data.currMillisec);
 
-          imgUrl = getAppleGifForPause(
-            startSec: startSec,
-            currentMilliSec: currMilliSec,
-          );
+    if (data.isStarted) {
+      final bool freshStart =
+          !_wasStarted && data.currMillisec == data.startSec * 1000;
+      final bool crossedBoundary =
+          _lastSegment != null && segment != _lastSegment;
+      if (segment != 1 && (freshStart || crossedBoundary)) {
+        _startIntro(segment);
+      }
+    } else {
+      _introTimer?.cancel();
+      _showingIntro = false;
+    }
+    _lastSegment = segment;
+    _wasStarted = data.isStarted;
 
-          return Image.asset(imgUrl, gaplessPlayback: true);
-        }
-      },
-    );
+    final String imgUrl;
+    if (!data.isStarted) {
+      imgUrl = getAppleGifForPause(
+          startSec: data.startSec, currentMilliSec: data.currMillisec);
+    } else if (_showingIntro) {
+      imgUrl = appleIntroGif(segment);
+    } else {
+      imgUrl = appleBlinkGif(segment);
+    }
+    return Image.asset(imgUrl, gaplessPlayback: true);
   }
 }
