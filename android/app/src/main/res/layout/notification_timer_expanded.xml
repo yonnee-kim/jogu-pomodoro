@@ -54,7 +54,8 @@
         </LinearLayout>
     </LinearLayout>
 
-    <View
+    <!-- RemoteViews는 android.view.View 인플레이션을 허용하지 않아 FrameLayout으로 구분선 표현 -->
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:layout_marginTop="10dp"
@@ -76,7 +77,7 @@
             android:textColor="#1F1B16"
             android:textSize="15sp" />
 
-        <View
+        <FrameLayout
             android:layout_width="1dp"
             android:layout_height="match_parent"
             android:background="#E5E0D5" />
