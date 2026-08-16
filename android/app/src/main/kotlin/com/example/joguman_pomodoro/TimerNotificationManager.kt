@@ -146,8 +146,10 @@ object TimerNotificationManager {
     }
 
     private fun ensureOngoingChannel(context: Context) {
+        // IMPORTANCE_LOW(무음 분류)는 Android 16 잠금화면에서 숨겨진다.
+        // DEFAULT + 무음 사운드로 잠금화면 표시를 보장한다(소리·진동은 계속 없음).
         val channel = NotificationChannel(
-            ONGOING_CHANNEL_ID, "Timer", NotificationManager.IMPORTANCE_LOW,
+            ONGOING_CHANNEL_ID, "Timer", NotificationManager.IMPORTANCE_DEFAULT,
         ).apply {
             setSound(null, null)
             enableVibration(false)

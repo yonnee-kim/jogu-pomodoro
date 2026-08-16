@@ -7,18 +7,10 @@
     android:background="@drawable/bg_timer_notification"
     android:padding="10dp">
 
-    <ImageView
-        android:id="@+id/timer_icon"
-        android:layout_width="32dp"
-        android:layout_height="32dp"
-        android:src="@mipmap/ic_launcher"
-        android:contentDescription="@string/app_name" />
-
     <Chronometer
         android:id="@+id/timer_chrono"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="10dp"
         android:countDown="true"
         android:fontFamily="@font/joguman_handwriting"
         android:textColor="#1F1B16"
@@ -28,7 +20,6 @@
         android:id="@+id/timer_paused_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="10dp"
         android:visibility="gone"
         android:fontFamily="@font/joguman_handwriting"
         android:textColor="#1F1B16"
