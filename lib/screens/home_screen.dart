@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:alarm/alarm.dart';
@@ -65,6 +66,11 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   initFunc() async {
     isGranted = await Permission.notification.isGranted;
+    if (Platform.isAndroid && !isGranted) {
+      // Android 13+ 진행형 알림은 POST_NOTIFICATIONS 미허용이면 조용히 표시되지 않으므로 앱 시작 시 요청.
+      // (iOS는 main.dart 초기화에서 이미 요청하므로 건드리지 않음. scheduleExactAlarm 등은 종 버튼 UX로 유지.)
+      isGranted = (await Permission.notification.request()).isGranted;
+    }
     WidgetsBinding.instance.addPostFrameCallback(
       (_) async {
         final skin = context.read<ThemeProvider>().currentSkin;
