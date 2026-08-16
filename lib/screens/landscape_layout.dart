@@ -1,42 +1,38 @@
 import 'dart:math' as math;
 
-/// 가로모드 영역 분할 결과.
-class LandscapeLayout {
-  final double leftRegion; // 왼쪽(다이얼) 영역 폭
-  final double dialSize; // 다이얼 한 변 길이(정사각)
-  final double rightRegion; // 오른쪽(버튼) 영역 폭
+/// BoxFit.cover로 그려진 배경 이미지가 화면에서 차지하는 실제 영역.
+/// 화면 밖으로 잘리는 부분이 있으면 left/top이 음수가 된다.
+class CoverGeometry {
+  final double left;
+  final double top;
+  final double width;
+  final double height;
 
-  const LandscapeLayout({
-    required this.leftRegion,
-    required this.dialSize,
-    required this.rightRegion,
+  const CoverGeometry({
+    required this.left,
+    required this.top,
+    required this.width,
+    required this.height,
   });
+
+  /// 이미지 기준 비율 좌표(0~1)를 화면 좌표로 변환.
+  double mapX(double fx) => left + fx * width;
+  double mapY(double fy) => top + fy * height;
 }
 
-/// 가로 화면에서 다이얼/버튼 영역 폭과 다이얼 크기를 계산한다.
-///
-/// 규칙:
-/// - 기본 다이얼:버튼 = dialRegionRatio : (1-dialRegionRatio) (6:4)
-/// - 6:4에서 다이얼이 최대높이(height*dialHeightFactor)에 못 미치면
-///   왼쪽 영역을 넓혀 다이얼을 키운다.
-/// - 단, 버튼(오른쪽) 영역은 최소 width*panelMinRatio(20%) 보장.
-LandscapeLayout computeLandscapeLayout({
-  required double width,
-  required double height,
-  double dialRegionRatio = 0.6,
-  double panelMinRatio = 0.2,
-  double dialHeightFactor = 0.9,
+/// 화면 크기와 이미지 가로/세로비로 BoxFit.cover 기하를 계산한다.
+/// 위젯을 배경 이미지의 특정 지점에 기기 무관하게 고정(앵커)할 때 사용.
+CoverGeometry computeCoverGeometry({
+  required double screenWidth,
+  required double screenHeight,
+  required double imageAspect,
 }) {
-  final double maxDialByHeight = height * dialHeightFactor;
-  double leftRegion = width * dialRegionRatio;
-  if (leftRegion < maxDialByHeight) {
-    leftRegion = math.min(maxDialByHeight, width * (1 - panelMinRatio));
-  }
-  final double dialSize = math.min(leftRegion, maxDialByHeight);
-  final double rightRegion = width - leftRegion;
-  return LandscapeLayout(
-    leftRegion: leftRegion,
-    dialSize: dialSize,
-    rightRegion: rightRegion,
+  final double bgWidth = math.max(screenWidth, screenHeight * imageAspect);
+  final double bgHeight = math.max(screenHeight, screenWidth / imageAspect);
+  return CoverGeometry(
+    left: (screenWidth - bgWidth) / 2,
+    top: (screenHeight - bgHeight) / 2,
+    width: bgWidth,
+    height: bgHeight,
   );
 }
