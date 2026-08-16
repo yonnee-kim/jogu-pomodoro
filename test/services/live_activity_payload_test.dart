@@ -89,4 +89,37 @@ void main() {
       expect(r.kind, ReconcileKind.none);
     });
   });
+
+  group('buildAndroidStartPayload', () {
+    test('MethodChannel용 타입 그대로 담는다 (endDateMs는 int)', () {
+      final payload = buildAndroidStartPayload(
+        endDate: DateTime.fromMillisecondsSinceEpoch(1234567890000),
+        label: '집중',
+        notifTitle: '조구만 뽀모도로 타이머',
+        notifBody: '끝!',
+        totalLabel: '50분',
+        pauseLabel: '일시정지',
+        resumeLabel: '재개',
+        cancelLabel: '취소',
+      );
+      expect(payload, {
+        'endDateMs': 1234567890000,
+        'label': '집중',
+        'notifTitle': '조구만 뽀모도로 타이머',
+        'notifBody': '끝!',
+        'totalLabel': '50분',
+        'pauseLabel': '일시정지',
+        'resumeLabel': '재개',
+        'cancelLabel': '취소',
+      });
+    });
+  });
+
+  group('buildAndroidPausedPayload', () {
+    test('remainingSeconds는 int로 담는다', () {
+      final payload =
+          buildAndroidPausedPayload(remainingSeconds: 2700, label: '집중');
+      expect(payload, {'remainingSeconds': 2700, 'label': '집중'});
+    });
+  });
 }

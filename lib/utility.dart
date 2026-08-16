@@ -41,11 +41,13 @@ Future<void> setTimerByLifecycle(BuildContext context, AppLifecycleState state, 
   Timer? myTimer = context.read<DataProvider>().myTimer;
   DateTime? leaveDate = context.read<DataProvider>().leaveDate;
   int? leaveMillisec = context.read<DataProvider>().leaveMillisec;
+  // leave 상태는 복귀 시 타이머 유무와 무관하게 항상 1회 소비한다 —
+  // 타이머 없이 잠금/해제하면 stale 값이 남아 다음 타이머 복원을 00:00으로 덮어쓴다.
+  context.read<DataProvider>().setLeaveDateTime(null);
   if (leaveDate != null && leaveMillisec != null && myTimer != null && myTimer.isActive) {
     int milliDifference = DateTime.now().difference(leaveDate).inMilliseconds;
     int newSec = ((leaveMillisec - milliDifference) / 1000).ceil();
     int newMillisec = leaveMillisec - milliDifference;
-    context.read<DataProvider>().setLeaveDateTime(null);
     if (newSec <= 0) {
       newSec = 0;
       context.read<DataProvider>().setCurrSec(newSec, milliseconds: newMillisec);

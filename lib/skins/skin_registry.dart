@@ -34,7 +34,7 @@ const List<String> sharedImagePaths = [
 const LandscapeAnchors sharedLandscapeAnchors = LandscapeAnchors(
   imageAspect: 2869 / 1321,
   dialCenter: Offset(0.390, 0.500),
-  dialHeightFactor: 0.88,
+  dialHeightFactor: 0.84,
   timerCenter: Offset(0.805, 0.442),
   numberHeightFactor: 0.1,
   buttonsCenter: Offset(0.805, 0.700),

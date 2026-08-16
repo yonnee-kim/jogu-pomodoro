@@ -1,5 +1,9 @@
 {
     "app_name" : "乔古漫 番茄鐘計時器",
     "end_message" : "🦕 : 完成囉！休息一下吧。",
-    "live_activity_title" : "專注"
+    "live_activity_title" : "專注",
+    "la_pause" : "暫停",
+    "la_resume" : "繼續",
+    "la_cancel" : "取消",
+    "la_minutes" : "{}分鐘"
 }
