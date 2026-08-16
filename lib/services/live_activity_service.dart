@@ -104,6 +104,9 @@ class LiveActivityService {
       }
       return;
     }
+    // 앱 내 시작 시점의 미소비 sync 스냅샷은 정의상 stale — 복귀 시 낡은 스냅샷이
+    // 새 타이머를 덮어쓰지 않도록 폐기한다 (Android는 네이티브 start 핸들러에서 동일 처리).
+    await consumeSync();
     if (!await _enabled()) return;
     final data = buildRunningPayload(
       endDate: endDate,
@@ -175,7 +178,10 @@ class LiveActivityService {
       }
       return;
     }
-    if (!Platform.isIOS || _activityId == null) return;
+    if (!Platform.isIOS) return;
+    // 앱 내 종료 시점의 미소비 스냅샷도 stale — start와 동일하게 폐기.
+    await consumeSync();
+    if (_activityId == null) return;
     final id = _activityId!;
     _activityId = null;
     await _plugin.endActivity(id);
