@@ -5,25 +5,6 @@ import WidgetKit
 
 private let sharedDefault = UserDefaults(suiteName: "group.com.joguman.pomodoro")!
 
-private func jogumanFont(size: CGFloat) -> Font {
-    Font.custom("JogumanHandwriting-Regular", size: size)
-}
-
-// 시간 표시부 미세조정용 상수 — 숫자만 바꿔서 튜닝
-private enum TimerMetrics {
-    static let lockScreenTimeSize: CGFloat = 48  // 잠금화면 시간 폰트 크기
-    static let lockScreenTimeWidth: CGFloat = 150  // 잠금화면 시간 고정 폭 (숫자는 이 안에서 우측정렬)
-    static let lockScreenLabelSize: CGFloat = 28  // 잠금화면 '타이머' 라벨 폰트 크기
-    static let islandExpandedTimeSize: CGFloat = 40  // 아일랜드 확장 뷰 시간 폰트 크기
-    static let islandCompactTimeSize: CGFloat = 20  // 아일랜드 컴팩트 시간 폰트 크기
-    static let islandCompactTimeWidth: CGFloat = 64  // 아일랜드 컴팩트 시간 고정 폭
-    static let lockScreenLabelSpacing: CGFloat = 12  // 버튼과 '타이머' 라벨 사이 간격
-    static let islandRingSize: CGFloat = 22  // 아일랜드 컴팩트/미니멀 진행률 링 크기
-    static let lockScreenTrailingPadding: CGFloat = 20  // 잠금화면 시간 오른쪽 여백 (기본 패딩 16 대체)
-    static let lockScreenLabelYOffset: CGFloat = 3  // '타이머' 라벨 세로 오프셋 (양수 = 아래로)
-    static let lockScreenTimeYOffset: CGFloat = 3  // 시간 텍스트 세로 오프셋 (양수 = 아래로)
-}
-
 struct JogumanTimerLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: LiveActivitiesAppAttributes.self) { context in
@@ -140,28 +121,17 @@ struct JogumanTimerLiveActivity: Widget {
                 Int(
                     sharedDefault.string(forKey: context.attributes.prefixedKey("remainingSeconds"))
                         ?? "0") ?? 0
-            Text(formatTime(remaining))
+            Text(formatWidgetTime(remaining))
         } else {
             let endMs =
                 Double(
                     sharedDefault.string(forKey: context.attributes.prefixedKey("endDateMs")) ?? "0"
                 ) ?? 0
             let endDate = Date(timeIntervalSince1970: endMs / 1000.0)
-            // 자연종료: staleDate 도달 시 시스템이 재렌더링해 주므로 시간 대신 완료 문구 표시
-            let isStale: Bool = {
-                if #available(iOS 16.2, *) { return context.isStale }
-                return false
-            }()
-            if isStale || endDate.timeIntervalSinceNow <= 0 {
-                Text(
-                    sharedDefault.string(forKey: context.attributes.prefixedKey("doneLabel"))
-                        ?? "끝!")
-            } else {
-                let start = min(Date(), endDate)
-                Text(
-                    timerInterval: start...max(endDate, start.addingTimeInterval(1)),
-                    countsDown: true)
-            }
+            let start = min(Date(), endDate)
+            Text(
+                timerInterval: start...max(endDate, start.addingTimeInterval(1)),
+                countsDown: true)
         }
     }
 
@@ -176,34 +146,21 @@ struct JogumanTimerLiveActivity: Widget {
             HStack(spacing: 8) {
                 if isPaused {
                     Button(intent: ResumeTimerIntent()) {
-                        buttonImage("start")
+                        widgetButtonImage("start")
                     }
                     .buttonStyle(.plain)
                 } else {
                     Button(intent: PauseTimerIntent()) {
-                        buttonImage("pause")
+                        widgetButtonImage("pause")
                     }
                     .buttonStyle(.plain)
                 }
                 Button(intent: CancelTimerIntent()) {
-                    buttonImage("clear")
+                    widgetButtonImage("clear")
                 }
                 .buttonStyle(.plain)
             }
         }
-    }
-
-    private func buttonImage(_ name: String) -> some View {
-        Image(name)
-            .resizable()
-            .scaledToFit()
-            .frame(width: 44, height: 44)
-    }
-
-    private func formatTime(_ seconds: Int) -> String {
-        let m = seconds / 60
-        let s = seconds % 60
-        return String(format: "%d:%02d", m, s)
     }
 }
 
