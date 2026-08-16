@@ -83,3 +83,38 @@ ReconcileResult reconcileFromSync({
       return const ReconcileResult(ReconcileKind.none, 0);
   }
 }
+
+/// Android 진행형 알림 시작 페이로드 (MethodChannel 'start' 인자).
+/// iOS와 달리 UserDefaults 문자열 제약이 없으므로 원 타입 그대로 전달한다.
+Map<String, dynamic> buildAndroidStartPayload({
+  required DateTime endDate,
+  required String label,
+  required String notifTitle,
+  required String notifBody,
+  required String totalLabel,
+  required String pauseLabel,
+  required String resumeLabel,
+  required String cancelLabel,
+}) {
+  return {
+    'endDateMs': endDate.millisecondsSinceEpoch,
+    'label': label,
+    'notifTitle': notifTitle,
+    'notifBody': notifBody,
+    'totalLabel': totalLabel,
+    'pauseLabel': pauseLabel,
+    'resumeLabel': resumeLabel,
+    'cancelLabel': cancelLabel,
+  };
+}
+
+/// Android 진행형 알림 일시정지 페이로드 (MethodChannel 'updatePaused' 인자).
+Map<String, dynamic> buildAndroidPausedPayload({
+  required int remainingSeconds,
+  required String label,
+}) {
+  return {
+    'remainingSeconds': remainingSeconds,
+    'label': label,
+  };
+}

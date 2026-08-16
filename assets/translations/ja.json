@@ -1,5 +1,9 @@
 {
     "app_name" : "ジョグマン・ポモドーロ・タイマー",
     "end_message" : "🦕 : おしまい！ちょっと休憩しよう.",
-    "live_activity_title" : "タイマー"
+    "live_activity_title" : "タイマー",
+    "la_pause" : "一時停止",
+    "la_resume" : "再開",
+    "la_cancel" : "キャンセル",
+    "la_minutes" : "{}分"
 }

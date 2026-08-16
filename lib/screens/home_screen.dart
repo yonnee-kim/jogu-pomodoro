@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:alarm/alarm.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:joguman_pomodoro/models/skin_config.dart';
 import 'package:joguman_pomodoro/screens/landscape_layout.dart';
 import 'package:joguman_pomodoro/skins/skin_registry.dart';
 import 'package:joguman_pomodoro/providers/angle_provider.dart';
@@ -39,7 +41,6 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   static const double _lsSchoolOverlayScale = 0.85; // school 건물 이미지 — 낮추면 축소
   static const double _lsSchoolOverlayLift =
       0.05; // school 건물 위로 밀기(clockSize 비율) — 키우면 중심에서 멀어짐
-  static const double _lsDialOffsetY = 0.0; // 다이얼 세로 위치(px) — 양수=아래로, 음수=위로
 
   NeverScrollableScrollPhysics? pageScrollPhysics =
       const NeverScrollableScrollPhysics();
@@ -58,13 +59,19 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     LiveActivityService.instance.setNativePingListener(() {
       // 백그라운드 상태에서 소비하면 스냅샷이 사라져 이후 resumed 복원이 불가능해진다.
       // 포그라운드일 때만 즉시 소비하고, 그 외에는 resumed의 _syncFromNative에 맡긴다.
-      if (WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) return;
+      if (WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed)
+        return;
       _syncFromNative();
     });
   }
 
   initFunc() async {
     isGranted = await Permission.notification.isGranted;
+    if (Platform.isAndroid && !isGranted) {
+      // Android 13+ 진행형 알림은 POST_NOTIFICATIONS 미허용이면 조용히 표시되지 않으므로 앱 시작 시 요청.
+      // (iOS는 main.dart 초기화에서 이미 요청하므로 건드리지 않음. scheduleExactAlarm 등은 종 버튼 UX로 유지.)
+      isGranted = (await Permission.notification.request()).isGranted;
+    }
     WidgetsBinding.instance.addPostFrameCallback(
       (_) async {
         final skin = context.read<ThemeProvider>().currentSkin;
@@ -281,50 +288,55 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildLandscapeContent(BuildContext context, LandscapeLayout layout,
-      double numberHeight, double dialOffsetY) {
-    final skin = context.watch<ThemeProvider>().currentSkin;
+  /// 배경 이미지(cover) 좌표에 다이얼/타이머/버튼을 앵커링하는 가로 레이아웃.
+  /// 모든 스킨이 sharedLandscapeAnchors 하나로 배치되어, 기기 크기와 무관하게
+  /// 배경의 부품 위치(검은 박스 등)와 정렬이 유지된다.
+  Widget _buildLandscapeContent(BuildContext context) {
+    const LandscapeAnchors anchors = sharedLandscapeAnchors;
+    final Size screen = MediaQuery.of(context).size;
+    final CoverGeometry bg = computeCoverGeometry(
+      screenWidth: screen.width,
+      screenHeight: screen.height,
+      imageAspect: anchors.imageAspect,
+    );
+    final double dialSize = anchors.dialHeightFactor * bg.height;
+    final double numberHeight = anchors.numberHeightFactor * bg.height;
+    final double buttonSize = anchors.buttonSizeFactor * bg.height;
+    final double buttonGap = anchors.buttonGapFactor * bg.height;
+    final double buttonsWidth = buttonSize * 2 + buttonGap;
+    // 타이머 박스: 숫자 4자리+콜론이 들어갈 만큼만 잡고 내부에서 중앙정렬
+    final double timerBoxWidth = numberHeight * 6;
+    final double timerBoxHeight = numberHeight * 1.5;
 
     return Stack(
       children: [
-        if (skin.backgroundBuilder != null)
-          Positioned.fill(child: skin.backgroundBuilder!()),
-        SafeArea(
-          child: Row(
-            children: [
-              SizedBox(
-                width: layout.leftRegion,
-                child: Center(
-                  child: Transform.translate(
-                    offset: Offset(0, dialOffsetY), // 자동 중앙보정 + 수동 미세조정
-                    child: _buildDial(context, layout.dialSize,
-                        footScale: _lsFootScale,
-                        overlayScale: _lsSchoolOverlayScale,
-                        overlayLift: _lsSchoolOverlayLift),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // TimerWidget의 오버레이 박스(숫자 높이의 약 4.86배)가 세로 중앙정렬을
-                    // 틀어지게 하므로, 레이아웃 높이는 숫자 크기에 맞추고 박스는 넘치게 렌더링한다.
-                    SizedBox(
-                      height: numberHeight * 1.6,
-                      child: OverflowBox(
-                        alignment: Alignment.center,
-                        maxHeight: double.infinity,
-                        child: TimerWidget(numberHeight: numberHeight),
-                      ),
-                    ),
-                    SizedBox(height: numberHeight * 1.5),
-                    const BottomButtonWidet(landscape: true),
-                  ],
-                ),
-              ),
-            ],
+        _buildLandscapeBackground(context.watch<ThemeProvider>().currentSkin),
+        Positioned(
+          left: bg.mapX(anchors.dialCenter.dx) - dialSize / 2,
+          top: bg.mapY(anchors.dialCenter.dy) - dialSize / 2,
+          width: dialSize,
+          height: dialSize,
+          child: _buildDial(context, dialSize,
+              footScale: _lsFootScale,
+              overlayScale: _lsSchoolOverlayScale,
+              overlayLift: _lsSchoolOverlayLift),
+        ),
+        Positioned(
+          left: bg.mapX(anchors.timerCenter.dx) - timerBoxWidth / 2,
+          top: bg.mapY(anchors.timerCenter.dy) - timerBoxHeight / 2,
+          width: timerBoxWidth,
+          height: timerBoxHeight,
+          child: Center(
+            child: TimerWidget(numberHeight: numberHeight, landscape: true),
           ),
+        ),
+        Positioned(
+          left: bg.mapX(anchors.buttonsCenter.dx) - buttonsWidth / 2,
+          top: bg.mapY(anchors.buttonsCenter.dy) - buttonSize / 2,
+          width: buttonsWidth,
+          height: buttonSize,
+          child: BottomButtonWidet(
+              landscape: true, buttonSize: buttonSize, buttonGap: buttonGap),
         ),
         if (!isGranted)
           SafeArea(
@@ -333,6 +345,24 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ),
       ],
     );
+  }
+
+  Widget _buildLandscapeBackground(SkinConfig skin) {
+    if (skin.landscapeBackgroundBuilder != null) {
+      return Positioned.fill(
+        child: Selector<DataProvider, bool>(
+          selector: (context, dataProvider) => dataProvider.isStarted,
+          builder: (context, isStarted, child) =>
+              skin.landscapeBackgroundBuilder!(isStarted),
+        ),
+      );
+    }
+    if (skin.backgroundBuilder != null) {
+      return Positioned.fill(child: skin.backgroundBuilder!());
+    }
+    // 배경이 없어도 Positioned.fill을 유지해야 Stack이 0×0으로 붕괴하지 않는다
+    // (non-positioned 자식이 없으면 Stack은 주어진 constraints 크기로 확장됨)
+    return const Positioned.fill(child: SizedBox.shrink());
   }
 
   Widget _buildContent(BuildContext context, double clockSize) {
@@ -394,29 +424,14 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         );
       }
 
-      // 가로: 다이얼 왼쪽 / 텍스트+버튼 오른쪽
-      // 다이얼은 SafeArea 안에 놓이므로, 세로 가용 높이(안전영역 제외)를 기준으로 크기를 잡아
-      // chrono 이미지 종횡비(≈1.02배 높이)까지 감안해도 넘치지 않게 한다.
-      final EdgeInsets safe = MediaQuery.of(context).padding;
-      final double availableHeight = maxHeight - safe.top - safe.bottom;
-      final layout = computeLandscapeLayout(
-          width: maxWidth, height: availableHeight, dialHeightFactor: 0.95);
-      final double landscapeNumberHeight = math.min(
-            layout.rightRegion * 0.85 / (100 / 10.5), // 타이머 폭을 패널의 약 85%에 맞춤
-            availableHeight * 0.14, // 높이 상한
-          ) *
-          1.2; // 가로 타이머 텍스트 확대 배수
-      // 다이얼은 SafeArea 안에서 중앙정렬되는데, 상/하 안전여백이 다르면(보통 하단이 큼)
-      // SafeArea 중심이 화면 중심보다 위로 치우친다. 그 차이의 절반만큼 자동으로 내려 실제 화면 중앙에 맞춘다.
-      final double dialOffsetY = (safe.bottom - safe.top) / 2 + _lsDialOffsetY;
+      // 가로: 배경 이미지 앵커 레이아웃 (다이얼 왼쪽 / 타이머+버튼 오른쪽)
       return Scaffold(
         backgroundColor: skin.backgroundColor,
         body: !isLoaded
             ? const Center(
                 child: CircularProgressIndicator(
                     color: Color.fromARGB(255, 189, 189, 189)))
-            : _buildLandscapeContent(
-                context, layout, landscapeNumberHeight, dialOffsetY),
+            : _buildLandscapeContent(context),
       );
     }
 
@@ -493,9 +508,15 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 }
 
 class BottomButtonWidet extends StatefulWidget {
-  const BottomButtonWidet({super.key, this.landscape = false});
+  const BottomButtonWidet(
+      {super.key, this.landscape = false, this.buttonSize, this.buttonGap});
 
   final bool landscape;
+
+  /// 지정 시 기본 상수(_lsButtonSize/_lsButtonGap) 대신 사용 — 앵커 레이아웃에서
+  /// 배경 이미지 크기에 비례해 넘겨준다.
+  final double? buttonSize;
+  final double? buttonGap;
 
   @override
   State<BottomButtonWidet> createState() => _BottomButtonWidetState();
@@ -536,7 +557,8 @@ class _BottomButtonWidetState extends State<BottomButtonWidet> {
     Timer? myTimer = context.watch<DataProvider>().myTimer;
     final skin = context.watch<ThemeProvider>().currentSkin;
 
-    final double buttonSize = widget.landscape ? _lsButtonSize : 60; // 가로만 조절
+    final double buttonSize =
+        widget.buttonSize ?? (widget.landscape ? _lsButtonSize : 60); // 가로만 조절
 
     // 스타트 스탑
     final Widget playStopButton = GestureDetector(
@@ -576,7 +598,7 @@ class _BottomButtonWidetState extends State<BottomButtonWidet> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           playStopButton,
-          const SizedBox(width: _lsButtonGap),
+          SizedBox(width: widget.buttonGap ?? _lsButtonGap),
           changeButton,
         ],
       );

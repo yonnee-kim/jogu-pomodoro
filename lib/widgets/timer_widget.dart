@@ -6,9 +6,12 @@ import 'package:provider/provider.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
 class TimerWidget extends StatelessWidget {
-  const TimerWidget({super.key, this.numberHeight});
+  const TimerWidget({super.key, this.numberHeight, this.landscape = false});
 
   final double? numberHeight;
+
+  /// 가로모드에서는 세탁기 패널 등이 가로 배경 이미지에 포함되므로 오버레이를 그리지 않는다.
+  final bool landscape;
 
   @override
   Widget build(BuildContext context) {
@@ -17,8 +20,9 @@ class TimerWidget extends StatelessWidget {
     final double unit = numberHeight ?? 10.5.w;
     final double overlayHeight = unit * (51 / 10.5);
     final double overlayWidth = unit * (100 / 10.5);
-    final double offsetX = unit * (-0.8 / 10.5);
-    final double offsetY = unit * (2.3 / 10.5);
+    // offsetX/Y는 세로 오버레이 이미지와의 정렬 보정 — 오버레이가 없는 가로에서는 0
+    final double offsetX = landscape ? 0 : unit * (-0.8 / 10.5);
+    final double offsetY = landscape ? 0 : unit * (2.3 / 10.5);
     final double digitGap = unit * (0.8 / 10.5);
     final double colonPad = unit * (3 / 10.5);
     int currentSec = context.watch<DataProvider>().currSec;
@@ -54,7 +58,7 @@ class TimerWidget extends StatelessWidget {
               return SizedBox(
                 height: overlayHeight,
                 width: overlayWidth,
-                child: skin.timerOverlayBuilder != null ? skin.timerOverlayBuilder!(isStarted) : null,
+                child: (!landscape && skin.timerOverlayBuilder != null) ? skin.timerOverlayBuilder!(isStarted) : null,
               );
             }),
         Transform.translate(

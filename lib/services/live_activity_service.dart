@@ -22,7 +22,7 @@ class LiveActivityService {
   bool _initialized = false;
 
   Future<void> init() async {
-    if (!Platform.isIOS) return;
+    if (!Platform.isIOS) return; // Android는 사전 초기화 불필요(상태는 네이티브 prefs가 소유)
     try {
       await _plugin.init(appGroupId: appGroupId);
       _initialized = true;
@@ -45,9 +45,9 @@ class LiveActivityService {
     }
   }
 
-  /// Swift Intent가 남긴 동기화 스냅샷을 읽고 비운다. 없으면 null.
+  /// 네이티브(iOS Swift Intent / Android Receiver)가 남긴 동기화 스냅샷을 읽고 비운다. 없으면 null.
   Future<Map<String, String>?> consumeSync() async {
-    if (!Platform.isIOS) return null;
+    if (!Platform.isIOS && !Platform.isAndroid) return null;
     try {
       final raw = await _syncChannel.invokeMethod<Map>('consumeSync');
       return raw?.map((k, v) => MapEntry(k.toString(), v.toString()));
@@ -59,7 +59,7 @@ class LiveActivityService {
 
   /// 앱 실행 중 버튼이 눌렸을 때 네이티브가 보내는 핑 수신.
   void setNativePingListener(void Function()? onPing) {
-    if (!Platform.isIOS) return;
+    if (!Platform.isIOS && !Platform.isAndroid) return;
     _syncChannel.setMethodCallHandler((call) async {
       if (call.method == 'syncRequested') onPing?.call();
     });
@@ -71,13 +71,38 @@ class LiveActivityService {
   }
 
   /// 실행 중 상태로 시작(없으면 생성) 또는 갱신.
+  /// totalLabel/pauseLabel/resumeLabel/cancelLabel은 Android 알림 표시용(iOS 경로에서는 무시).
   Future<void> startOrUpdateRunning({
     required DateTime endDate,
     required int totalSeconds,
     required String label,
     required String notifTitle,
     required String notifBody,
+    String totalLabel = '',
+    String pauseLabel = '',
+    String resumeLabel = '',
+    String cancelLabel = '',
   }) async {
+    if (Platform.isAndroid) {
+      try {
+        await _syncChannel.invokeMethod(
+          'start',
+          buildAndroidStartPayload(
+            endDate: endDate,
+            label: label,
+            notifTitle: notifTitle,
+            notifBody: notifBody,
+            totalLabel: totalLabel,
+            pauseLabel: pauseLabel,
+            resumeLabel: resumeLabel,
+            cancelLabel: cancelLabel,
+          ),
+        );
+      } catch (e) {
+        debugPrint('[LA] Android 알림 시작 실패: $e');
+      }
+      return;
+    }
     if (!await _enabled()) return;
     final data = buildRunningPayload(
       endDate: endDate,
@@ -106,6 +131,18 @@ class LiveActivityService {
     required int totalSeconds,
     required String label,
   }) async {
+    if (Platform.isAndroid) {
+      try {
+        await _syncChannel.invokeMethod(
+          'updatePaused',
+          buildAndroidPausedPayload(
+              remainingSeconds: remainingSeconds, label: label),
+        );
+      } catch (e) {
+        debugPrint('[LA] Android 알림 일시정지 실패: $e');
+      }
+      return;
+    }
     if (!await _enabled() || _activityId == null) return;
     await _plugin.updateActivity(
       _activityId!,
@@ -118,6 +155,14 @@ class LiveActivityService {
 
   /// 활동 종료 및 제거.
   Future<void> end() async {
+    if (Platform.isAndroid) {
+      try {
+        await _syncChannel.invokeMethod('end');
+      } catch (e) {
+        debugPrint('[LA] Android 알림 종료 실패: $e');
+      }
+      return;
+    }
     if (!Platform.isIOS || _activityId == null) return;
     final id = _activityId!;
     _activityId = null;
