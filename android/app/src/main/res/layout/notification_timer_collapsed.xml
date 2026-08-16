@@ -4,7 +4,6 @@
     android:layout_height="wrap_content"
     android:orientation="horizontal"
     android:gravity="center_vertical"
-    android:background="@drawable/bg_timer_notification"
     android:padding="10dp">
 
     <Chronometer
@@ -13,7 +12,7 @@
         android:layout_height="wrap_content"
         android:countDown="true"
         android:fontFamily="@font/joguman_handwriting"
-        android:textColor="#1F1B16"
+        android:textColor="?android:attr/textColorPrimary"
         android:textSize="20sp" />
 
     <TextView
@@ -22,7 +21,7 @@
         android:layout_height="wrap_content"
         android:visibility="gone"
         android:fontFamily="@font/joguman_handwriting"
-        android:textColor="#1F1B16"
+        android:textColor="?android:attr/textColorPrimary"
         android:textSize="20sp" />
 
     <TextView
@@ -33,6 +32,6 @@
         android:layout_marginStart="10dp"
         android:gravity="end"
         android:fontFamily="@font/joguman_handwriting"
-        android:textColor="#8A857C"
+        android:textColor="?android:attr/textColorSecondary"
         android:textSize="12sp" />
 </LinearLayout>

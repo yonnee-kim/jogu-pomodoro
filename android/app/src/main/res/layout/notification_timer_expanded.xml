@@ -3,7 +3,6 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:background="@drawable/bg_timer_notification"
     android:padding="12dp">
 
     <LinearLayout
@@ -24,7 +23,7 @@
                 android:layout_height="wrap_content"
                 android:countDown="true"
                 android:fontFamily="@font/joguman_handwriting"
-                android:textColor="#1F1B16"
+                android:textColor="?android:attr/textColorPrimary"
                 android:textSize="28sp" />
 
             <TextView
@@ -33,7 +32,7 @@
                 android:layout_height="wrap_content"
                 android:visibility="gone"
                 android:fontFamily="@font/joguman_handwriting"
-                android:textColor="#1F1B16"
+                android:textColor="?android:attr/textColorPrimary"
                 android:textSize="28sp" />
 
             <TextView
@@ -41,7 +40,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:fontFamily="@font/joguman_handwriting"
-                android:textColor="#8A857C"
+                android:textColor="?android:attr/textColorSecondary"
                 android:textSize="13sp" />
         </LinearLayout>
     </LinearLayout>
@@ -51,7 +50,7 @@
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:layout_marginTop="10dp"
-        android:background="#E5E0D5" />
+        android:background="#33808080" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -66,13 +65,13 @@
             android:gravity="center"
             android:paddingVertical="10dp"
             android:fontFamily="@font/joguman_handwriting"
-            android:textColor="#1F1B16"
+            android:textColor="?android:attr/textColorPrimary"
             android:textSize="15sp" />
 
         <FrameLayout
             android:layout_width="1dp"
             android:layout_height="match_parent"
-            android:background="#E5E0D5" />
+            android:background="#33808080" />
 
         <TextView
             android:id="@+id/btn_toggle"
@@ -82,7 +81,7 @@
             android:gravity="center"
             android:paddingVertical="10dp"
             android:fontFamily="@font/joguman_handwriting"
-            android:textColor="#1F1B16"
+            android:textColor="?android:attr/textColorPrimary"
             android:textSize="15sp" />
     </LinearLayout>
 </LinearLayout>
