@@ -159,4 +159,48 @@ void main() {
       expect(result, 'assets/gif/apple/apple_01_blink.gif');
     });
   });
+
+  group('appleSegment', () {
+    // 60초 타이머: 2/3 경계 = 40000ms, 1/3 경계 = 20000ms
+    const int startSec = 60;
+
+    test('완료(0 이하) → 1', () {
+      expect(appleSegment(startSec: startSec, currentMilliSec: 0), 1);
+      expect(appleSegment(startSec: startSec, currentMilliSec: -100), 1);
+    });
+
+    test('남은 시간 2/3 초과 → 2', () {
+      expect(appleSegment(startSec: startSec, currentMilliSec: 60000), 2);
+      expect(appleSegment(startSec: startSec, currentMilliSec: 40100), 2);
+    });
+
+    test('정확히 2/3 경계 → 3 (기존 getAppleGifForProgress 경계와 동일)', () {
+      expect(appleSegment(startSec: startSec, currentMilliSec: 40000), 3);
+    });
+
+    test('정확히 1/3 경계 → 4', () {
+      expect(appleSegment(startSec: startSec, currentMilliSec: 20000), 4);
+    });
+
+    test('1/3 미만 → 4', () {
+      expect(appleSegment(startSec: startSec, currentMilliSec: 100), 4);
+    });
+
+    test('홀수 초 타이머(45초): 2/3 경계 = 30000ms', () {
+      expect(appleSegment(startSec: 45, currentMilliSec: 30100), 2);
+      expect(appleSegment(startSec: 45, currentMilliSec: 30000), 3);
+    });
+  });
+
+  group('appleIntroGif / appleBlinkGif', () {
+    test('구간별 인트로 GIF 경로', () {
+      expect(appleIntroGif(1), 'assets/gif/apple/apple_01.gif');
+      expect(appleIntroGif(3), 'assets/gif/apple/apple_03.gif');
+    });
+
+    test('구간별 blink 루프 GIF 경로', () {
+      expect(appleBlinkGif(2), 'assets/gif/apple/apple_02_blink.gif');
+      expect(appleBlinkGif(4), 'assets/gif/apple/apple_04_blink.gif');
+    });
+  });
 }

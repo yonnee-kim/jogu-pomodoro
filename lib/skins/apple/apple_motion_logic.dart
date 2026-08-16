@@ -82,3 +82,20 @@ String getAppleGifForPause({
     return 'assets/gif/apple/apple_01_blink.gif';
   }
 }
+
+/// 남은 시간 기준 현재 구간.
+/// 1: 완료, 2: 남은 시간 2/3 초과, 3: 1/3~2/3, 4: 0~1/3
+int appleSegment({required int startSec, required int currentMilliSec}) {
+  if (currentMilliSec <= 0) return 1;
+  final int twoThirdMs = (startSec * 2 / 3).round() * 1000;
+  final int oneThirdMs = (startSec * 1 / 3).round() * 1000;
+  if (currentMilliSec > twoThirdMs) return 2;
+  if (currentMilliSec > oneThirdMs) return 3;
+  return 4;
+}
+
+/// 구간 진입을 목격했을 때 1회 재생하는 인트로 GIF 경로.
+String appleIntroGif(int segment) => 'assets/gif/apple/apple_0$segment.gif';
+
+/// 구간 대기 루프 GIF 경로.
+String appleBlinkGif(int segment) => 'assets/gif/apple/apple_0${segment}_blink.gif';
