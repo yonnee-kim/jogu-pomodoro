@@ -37,10 +37,41 @@ import flutter_local_notifications
       channel.setMethodCallHandler { call, result in
         if call.method == "consumeSync" {
           result(AppDelegate.consumeSyncSnapshot())
-        } else if call.method == "setStaleDate" {
-          let args = call.arguments as? [String: Any]
-          let endDateMs = args?["endDateMs"] as? Int ?? 0
-          AppDelegate.setStaleDate(endDateMs: endDateMs)
+        } else if call.method == "alarmkitAvailable" {
+          if #available(iOS 26.0, *) { result(true) } else { result(false) }
+        } else if call.method == "alarmkitAuthState" {
+          if #available(iOS 26.0, *) {
+            result(AlarmKitControlHandler.authState())
+          } else {
+            result("unavailable")
+          }
+        } else if call.method == "alarmkitEnsureAuth" {
+          if #available(iOS 26.0, *) {
+            Task { @MainActor in result(await AlarmKitControlHandler.ensureAuth()) }
+          } else {
+            result(false)
+          }
+        } else if call.method == "alarmkitStart" {
+          if #available(iOS 26.0, *) {
+            let args = call.arguments as? [String: Any] ?? [:]
+            Task { @MainActor in
+              let ok = await AlarmKitControlHandler.start(
+                endDateMs: args["endDateMs"] as? Int ?? 0,
+                label: args["label"] as? String ?? "",
+                alertTitle: args["alertTitle"] as? String ?? "",
+                stopLabel: args["stopLabel"] as? String ?? "",
+                pauseLabel: args["pauseLabel"] as? String ?? "",
+                resumeLabel: args["resumeLabel"] as? String ?? "")
+              result(ok)
+            }
+          } else {
+            result(false)
+          }
+        } else if call.method == "alarmkitPause" {
+          if #available(iOS 26.0, *) { AlarmKitControlHandler.pause(fromWidget: false) }
+          result(nil)
+        } else if call.method == "alarmkitCancel" {
+          if #available(iOS 26.0, *) { AlarmKitControlHandler.cancel(fromWidget: false) }
           result(nil)
         } else {
           result(FlutterMethodNotImplemented)
@@ -59,21 +90,6 @@ import flutter_local_notifications
     }
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
-  }
-
-  /// 활동의 staleDate를 지정한다 (endDateMs 0 = 해제). 만료 시각에 위젯이
-  /// stale로 재렌더링되어 '끝!' 표시로 전환된다. 플러그인 updateActivity는
-  /// staleDate를 다루지 못해 갱신 직후 이 메서드로 보정한다.
-  private static func setStaleDate(endDateMs: Int) {
-    guard #available(iOS 16.2, *) else { return }
-    Task {
-      guard let activity = Activity<LiveActivitiesAppAttributes>.activities
-        .first(where: { $0.activityState == .active }) else { return }
-      let staleDate: Date? =
-        endDateMs > 0 ? Date(timeIntervalSince1970: Double(endDateMs) / 1000.0) : nil
-      await activity.update(
-        ActivityContent(state: .init(appGroupId: appGroupId), staleDate: staleDate))
-    }
   }
 
   private static func consumeSyncSnapshot() -> [String: String]? {

@@ -57,5 +57,7 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSAlarmKitUsageDescription</key>
+	<string>Rings an alarm and shows a Live Activity countdown when your Pomodoro timer ends.</string>
 </dict>
 </plist>
