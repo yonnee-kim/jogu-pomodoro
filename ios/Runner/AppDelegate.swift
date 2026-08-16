@@ -1,3 +1,4 @@
+import ActivityKit
 import Flutter
 import UIKit
 // import UserNotifications
@@ -36,6 +37,11 @@ import flutter_local_notifications
       channel.setMethodCallHandler { call, result in
         if call.method == "consumeSync" {
           result(AppDelegate.consumeSyncSnapshot())
+        } else if call.method == "setStaleDate" {
+          let args = call.arguments as? [String: Any]
+          let endDateMs = args?["endDateMs"] as? Int ?? 0
+          AppDelegate.setStaleDate(endDateMs: endDateMs)
+          result(nil)
         } else {
           result(FlutterMethodNotImplemented)
         }
@@ -53,6 +59,21 @@ import flutter_local_notifications
     }
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+
+  /// 활동의 staleDate를 지정한다 (endDateMs 0 = 해제). 만료 시각에 위젯이
+  /// stale로 재렌더링되어 '끝!' 표시로 전환된다. 플러그인 updateActivity는
+  /// staleDate를 다루지 못해 갱신 직후 이 메서드로 보정한다.
+  private static func setStaleDate(endDateMs: Int) {
+    guard #available(iOS 16.2, *) else { return }
+    Task {
+      guard let activity = Activity<LiveActivitiesAppAttributes>.activities
+        .first(where: { $0.activityState == .active }) else { return }
+      let staleDate: Date? =
+        endDateMs > 0 ? Date(timeIntervalSince1970: Double(endDateMs) / 1000.0) : nil
+      await activity.update(
+        ActivityContent(state: .init(appGroupId: appGroupId), staleDate: staleDate))
+    }
   }
 
   private static func consumeSyncSnapshot() -> [String: String]? {

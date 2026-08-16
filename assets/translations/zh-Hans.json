@@ -5,5 +5,6 @@
     "la_pause" : "暂停",
     "la_resume" : "继续",
     "la_cancel" : "取消",
-    "la_minutes" : "{}分钟"
+    "la_minutes" : "{}分钟",
+    "la_done" : "完成!"
 }

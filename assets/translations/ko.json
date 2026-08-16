@@ -5,5 +5,6 @@
     "la_pause" : "일시정지",
     "la_resume" : "재개",
     "la_cancel" : "취소",
-    "la_minutes" : "{}분"
+    "la_minutes" : "{}분",
+    "la_done" : "끝!"
 }

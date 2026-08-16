@@ -47,6 +47,8 @@ struct JogumanTimerLiveActivity: Widget {
                     .font(jogumanFont(size: TimerMetrics.islandCompactTimeSize))
                     .foregroundColor(Color("TimerText"))
                     .multilineTextAlignment(.center)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
                     .frame(width: TimerMetrics.islandCompactTimeWidth)
             } minimal: {
                 progressRing(context)
@@ -145,8 +147,21 @@ struct JogumanTimerLiveActivity: Widget {
                     sharedDefault.string(forKey: context.attributes.prefixedKey("endDateMs")) ?? "0"
                 ) ?? 0
             let endDate = Date(timeIntervalSince1970: endMs / 1000.0)
-            let start = min(Date(), endDate)
-            Text(timerInterval: start...max(endDate, start.addingTimeInterval(1)), countsDown: true)
+            // 자연종료: staleDate 도달 시 시스템이 재렌더링해 주므로 시간 대신 완료 문구 표시
+            let isStale: Bool = {
+                if #available(iOS 16.2, *) { return context.isStale }
+                return false
+            }()
+            if isStale || endDate.timeIntervalSinceNow <= 0 {
+                Text(
+                    sharedDefault.string(forKey: context.attributes.prefixedKey("doneLabel"))
+                        ?? "끝!")
+            } else {
+                let start = min(Date(), endDate)
+                Text(
+                    timerInterval: start...max(endDate, start.addingTimeInterval(1)),
+                    countsDown: true)
+            }
         }
     }
 
