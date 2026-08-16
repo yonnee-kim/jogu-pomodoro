@@ -27,103 +27,6 @@ void main() {
     });
   });
 
-  group('getAppleGifForProgress', () {
-    // 60초 타이머 기준: 2/3 마일스톤 = 40초(40000ms), 1/3 마일스톤 = 20초(20000ms)
-    const int startSec = 60;
-
-    test('시작 직후 (currMilliSec == startSec * 1000) → apple_02.gif', () {
-      final result = getAppleGifForProgress(
-        startSec: startSec,
-        currentMilliSec: 60000,
-        currentGif: 'assets/gif/apple/apple_01_blink.gif',
-      );
-      expect(result, 'assets/gif/apple/apple_02.gif');
-    });
-
-    test('2/3~1 구간에서 GIF 재생 완료 후 → apple_02_blink.gif', () {
-      // apple_02.gif 재생시간(3000ms) 경과 후
-      final result = getAppleGifForProgress(
-        startSec: startSec,
-        currentMilliSec: 60000 - 3000 - 100, // GIF 재생시간 + 100ms 경과
-        currentGif: 'assets/gif/apple/apple_02.gif',
-      );
-      expect(result, 'assets/gif/apple/apple_02_blink.gif');
-    });
-
-    test('이미 blink 상태면 변경하지 않음 (apple_02_blink)', () {
-      final result = getAppleGifForProgress(
-        startSec: startSec,
-        currentMilliSec: 50000,
-        currentGif: 'assets/gif/apple/apple_02_blink.gif',
-      );
-      expect(result, 'assets/gif/apple/apple_02_blink.gif');
-    });
-
-    test('2/3 마일스톤 도달 → apple_03.gif', () {
-      final result = getAppleGifForProgress(
-        startSec: startSec,
-        currentMilliSec: 40000, // (60 * 2/3).round() * 1000
-        currentGif: 'assets/gif/apple/apple_02_blink.gif',
-      );
-      expect(result, 'assets/gif/apple/apple_03.gif');
-    });
-
-    test('1/3~2/3 구간에서 GIF 재생 완료 후 → apple_03_blink.gif', () {
-      final result = getAppleGifForProgress(
-        startSec: startSec,
-        currentMilliSec: 40000 - 3000 - 100,
-        currentGif: 'assets/gif/apple/apple_03.gif',
-      );
-      expect(result, 'assets/gif/apple/apple_03_blink.gif');
-    });
-
-    test('1/3 마일스톤 도달 → apple_04.gif', () {
-      final result = getAppleGifForProgress(
-        startSec: startSec,
-        currentMilliSec: 20000, // (60 * 1/3).round() * 1000
-        currentGif: 'assets/gif/apple/apple_03_blink.gif',
-      );
-      expect(result, 'assets/gif/apple/apple_04.gif');
-    });
-
-    test('0~1/3 구간에서 GIF 재생 완료 후 → apple_04_blink.gif (버그 수정 검증)', () {
-      final result = getAppleGifForProgress(
-        startSec: startSec,
-        currentMilliSec: 20000 - 3000 - 100,
-        currentGif: 'assets/gif/apple/apple_04.gif',
-      );
-      expect(result, 'assets/gif/apple/apple_04_blink.gif');
-    });
-
-    test('이미 apple_04_blink 상태면 변경하지 않음', () {
-      final result = getAppleGifForProgress(
-        startSec: startSec,
-        currentMilliSec: 10000,
-        currentGif: 'assets/gif/apple/apple_04_blink.gif',
-      );
-      expect(result, 'assets/gif/apple/apple_04_blink.gif');
-    });
-
-    test('완료 (currMilliSec <= 0) → apple_01.gif', () {
-      final result = getAppleGifForProgress(
-        startSec: startSec,
-        currentMilliSec: 0,
-        currentGif: 'assets/gif/apple/apple_04_blink.gif',
-      );
-      expect(result, 'assets/gif/apple/apple_01.gif');
-    });
-
-    test('홀수 초 타이머에서도 마일스톤 정확히 계산', () {
-      // 45초 타이머: 2/3 = 30초, 1/3 = 15초
-      final result = getAppleGifForProgress(
-        startSec: 45,
-        currentMilliSec: 30000,
-        currentGif: 'assets/gif/apple/apple_02_blink.gif',
-      );
-      expect(result, 'assets/gif/apple/apple_03.gif');
-    });
-  });
-
   group('getAppleGifForPause', () {
     const int startSec = 60;
 
@@ -157,6 +60,96 @@ void main() {
         currentMilliSec: 0,
       );
       expect(result, 'assets/gif/apple/apple_01_blink.gif');
+    });
+  });
+
+  group('appleSegment', () {
+    // 60초 타이머: 2/3 경계 = 40000ms, 1/3 경계 = 20000ms
+    const int startSec = 60;
+
+    test('완료(0 이하) → 1', () {
+      expect(appleSegment(startSec: startSec, currentMilliSec: 0), 1);
+      expect(appleSegment(startSec: startSec, currentMilliSec: -100), 1);
+    });
+
+    test('남은 시간 2/3 초과 → 2', () {
+      expect(appleSegment(startSec: startSec, currentMilliSec: 60000), 2);
+      expect(appleSegment(startSec: startSec, currentMilliSec: 40100), 2);
+    });
+
+    test('정확히 2/3 경계 → 3 (기존 getAppleGifForProgress 경계와 동일)', () {
+      expect(appleSegment(startSec: startSec, currentMilliSec: 40000), 3);
+    });
+
+    test('정확히 1/3 경계 → 4', () {
+      expect(appleSegment(startSec: startSec, currentMilliSec: 20000), 4);
+    });
+
+    test('1/3 미만 → 4', () {
+      expect(appleSegment(startSec: startSec, currentMilliSec: 100), 4);
+    });
+
+    test('홀수 초 타이머(45초): 2/3 경계 = 30000ms', () {
+      expect(appleSegment(startSec: 45, currentMilliSec: 30100), 2);
+      expect(appleSegment(startSec: 45, currentMilliSec: 30000), 3);
+    });
+  });
+
+  group('appleIntroGif / appleBlinkGif', () {
+    test('구간별 인트로 GIF 경로', () {
+      expect(appleIntroGif(1), 'assets/gif/apple/apple_01.gif');
+      expect(appleIntroGif(3), 'assets/gif/apple/apple_03.gif');
+    });
+
+    test('구간별 blink 루프 GIF 경로', () {
+      expect(appleBlinkGif(2), 'assets/gif/apple/apple_02_blink.gif');
+      expect(appleBlinkGif(4), 'assets/gif/apple/apple_04_blink.gif');
+    });
+  });
+
+  group('isWitnessedTick', () {
+    test('직전 값 없음(마운트 직후) → false', () {
+      expect(isWitnessedTick(lastMilliSec: null, currentMilliSec: 40000), false);
+    });
+
+    test('정상 1초 틱 → true', () {
+      expect(isWitnessedTick(lastMilliSec: 40000, currentMilliSec: 39000), true);
+    });
+
+    test('큰 시간 점프(백그라운드 복귀) → false', () {
+      expect(isWitnessedTick(lastMilliSec: 40000, currentMilliSec: 20000), false);
+    });
+
+    test('시간 증가(다이얼 재설정 등) → false', () {
+      expect(isWitnessedTick(lastMilliSec: 20000, currentMilliSec: 40000), false);
+    });
+
+    test('경계 1500ms까지 허용', () {
+      expect(isWitnessedTick(lastMilliSec: 40000, currentMilliSec: 38500), true);
+      expect(isWitnessedTick(lastMilliSec: 40000, currentMilliSec: 38499), false);
+    });
+  });
+
+  group('isDialAdjusted', () {
+    test('직전 값 없음(마운트 직후) → false', () {
+      expect(isDialAdjusted(lastMilliSec: null, currentMilliSec: 1800000), false);
+    });
+
+    test('분 단위 스냅 점프(다이얼 조작) → true', () {
+      // 0분 → 30분으로 늘리기
+      expect(isDialAdjusted(lastMilliSec: 0, currentMilliSec: 1800000), true);
+      // 30분 → 29분으로 줄이기
+      expect(isDialAdjusted(lastMilliSec: 1800000, currentMilliSec: 1740000), true);
+    });
+
+    test('재생 중 일시정지 시 1초 미만 드리프트 → false', () {
+      // 초당 알림 사이에 정지하면 마지막 목격값과 수백 ms 차이가 난다
+      expect(isDialAdjusted(lastMilliSec: 40000, currentMilliSec: 39300), false);
+    });
+
+    test('경계 2000ms 미만 델타는 조작으로 보지 않음', () {
+      expect(isDialAdjusted(lastMilliSec: 40000, currentMilliSec: 38001), false);
+      expect(isDialAdjusted(lastMilliSec: 40000, currentMilliSec: 38000), true);
     });
   });
 }

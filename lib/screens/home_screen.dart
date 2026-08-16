@@ -87,9 +87,25 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           setState(() {
             isLoaded = true;
           });
+          unawaited(_precacheOtherSkins(skin));
         }
       },
     );
+  }
+
+  /// 현재 스킨 로딩 후 나머지 스킨 에셋을 백그라운드로 순차 프리캐시한다.
+  /// 지연 빌드 전환으로 스킨 변경 순간 로딩 끊김이 생기지 않게 미리 채워둔다.
+  Future<void> _precacheOtherSkins(SkinConfig current) async {
+    for (final config in skinConfigs) {
+      if (config.id == current.id) continue;
+      if (!mounted) return;
+      try {
+        await precacheImages(context, config);
+        await prefetchGifImages(config);
+      } catch (e) {
+        print('skin precache error (${config.id}): $e');
+      }
+    }
   }
 
   @override
@@ -209,15 +225,18 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       double overlayScale = 1.0,
       double overlayLift = 0.0}) {
     themeIndex = context.watch<ThemeProvider>().themeIndex; // 기존 State 필드 재사용
+    final config = skinConfigs[themeIndex];
 
-    final pomodoroList = skinConfigs.map((config) {
-      Widget motionWidget = config.motionWidgetBuilder();
-      if (config.centerAnimationScale != null) {
-        motionWidget = Transform.scale(
-            scale: config.centerAnimationScale!, child: motionWidget);
-      }
+    Widget motionWidget = config.motionWidgetBuilder();
+    if (config.centerAnimationScale != null) {
+      motionWidget = Transform.scale(
+          scale: config.centerAnimationScale!, child: motionWidget);
+    }
 
-      return PomodoroCast(
+    // key로 스킨 전환 시 이전 모션 위젯 dispose + 새 위젯 fresh 마운트 보장
+    return KeyedSubtree(
+      key: ValueKey(config.id),
+      child: PomodoroCast(
         dialImage: config.dialImageAsset ?? 'assets/img/chrono.png',
         dialImageOffset: config.dialImageOffset,
         dialImageScale: config.dialImageScale,
@@ -257,13 +276,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     scale: overlayScale,
                     child: config.dialOverlayBuilder!(cs))),
         dialBackgroundBuilder: config.dialBackgroundBuilder,
-      );
-    }).toList();
-
-    return IndexedStack(
-      index: themeIndex,
-      alignment: Alignment.center,
-      children: pomodoroList,
+      ),
     );
   }
 
