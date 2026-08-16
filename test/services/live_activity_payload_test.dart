@@ -9,6 +9,7 @@ void main() {
         endDate: end,
         totalSeconds: 2700,
         label: '집중',
+        doneLabel: '끝!',
         notifTitle: '알림제목',
         notifBody: '알림본문',
       );
@@ -16,6 +17,7 @@ void main() {
       expect(map['endDateMs'], '1700000000000');
       expect(map['isPaused'], 'false');
       expect(map['label'], '집중');
+      expect(map['doneLabel'], '끝!');
       expect(map['remainingSeconds'], '0');
       expect(map['totalSeconds'], '2700');
       // 모든 값은 문자열이어야 한다 (App Group UserDefaults 제약)
@@ -27,6 +29,7 @@ void main() {
         endDate: DateTime.fromMillisecondsSinceEpoch(1000),
         totalSeconds: 60,
         label: '집중',
+        doneLabel: '끝!',
         notifTitle: '조구만 뽀모도로',
         notifBody: '끝!',
       );

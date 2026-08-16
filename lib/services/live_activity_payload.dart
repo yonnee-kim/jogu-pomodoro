@@ -18,6 +18,7 @@ Map<String, dynamic> buildRunningPayload({
   required DateTime endDate,
   required int totalSeconds,
   required String label,
+  required String doneLabel,
   required String notifTitle,
   required String notifBody,
 }) {
@@ -27,6 +28,7 @@ Map<String, dynamic> buildRunningPayload({
     'remainingSeconds': '0',
     'totalSeconds': totalSeconds.toString(),
     'label': label,
+    'doneLabel': doneLabel,
     'notifTitle': notifTitle,
     'notifBody': notifBody,
   };

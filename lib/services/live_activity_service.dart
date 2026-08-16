@@ -76,6 +76,7 @@ class LiveActivityService {
     required DateTime endDate,
     required int totalSeconds,
     required String label,
+    required String doneLabel,
     required String notifTitle,
     required String notifBody,
     String totalLabel = '',
@@ -108,6 +109,7 @@ class LiveActivityService {
       endDate: endDate,
       totalSeconds: totalSeconds,
       label: label,
+      doneLabel: doneLabel,
       notifTitle: notifTitle,
       notifBody: notifBody,
     );
@@ -120,6 +122,10 @@ class LiveActivityService {
       } else {
         await _plugin.updateActivity(_activityId!, data);
       }
+      // 만료 시각에 위젯이 stale로 재렌더링되어 '끝!' 표시로 전환되도록
+      // 정확한 staleDate를 네이티브에서 지정한다 (플러그인 API는 분 단위라 미사용).
+      await _syncChannel.invokeMethod(
+          'setStaleDate', {'endDateMs': endDate.millisecondsSinceEpoch});
     } catch (e) {
       debugPrint('[LA] 활동 생성/갱신 실패: $e');
     }
@@ -151,6 +157,12 @@ class LiveActivityService {
           totalSeconds: totalSeconds,
           label: label),
     );
+    // 일시정지 중에는 만료가 없으므로 staleDate 해제 (endDateMs 0 = nil).
+    try {
+      await _syncChannel.invokeMethod('setStaleDate', {'endDateMs': 0});
+    } catch (e) {
+      debugPrint('[LA] staleDate 해제 실패: $e');
+    }
   }
 
   /// 활동 종료 및 제거.

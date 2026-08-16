@@ -117,6 +117,7 @@ class DataProvider with ChangeNotifier {
         endDate: alarmDate,
         totalSeconds: startSec,
         label: 'live_activity_title'.tr(),
+        doneLabel: 'la_done'.tr(),
         notifTitle: 'app_name'.tr(),
         notifBody: 'end_message'.tr(),
         totalLabel:
