@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/bg_timer_notification"
+    android:padding="12dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <ImageView
+            android:id="@+id/timer_icon"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@mipmap/ic_launcher"
+            android:contentDescription="@string/app_name" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="12dp"
+            android:orientation="vertical">
+
+            <Chronometer
+                android:id="@+id/timer_chrono"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:countDown="true"
+                android:fontFamily="@font/joguman_handwriting"
+                android:textColor="#1F1B16"
+                android:textSize="28sp" />
+
+            <TextView
+                android:id="@+id/timer_paused_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                android:fontFamily="@font/joguman_handwriting"
+                android:textColor="#1F1B16"
+                android:textSize="28sp" />
+
+            <TextView
+                android:id="@+id/timer_subtext"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/joguman_handwriting"
+                android:textColor="#8A857C"
+                android:textSize="13sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="10dp"
+        android:background="#E5E0D5" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/btn_cancel"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:paddingVertical="10dp"
+            android:fontFamily="@font/joguman_handwriting"
+            android:textColor="#1F1B16"
+            android:textSize="15sp" />
+
+        <View
+            android:layout_width="1dp"
+            android:layout_height="match_parent"
+            android:background="#E5E0D5" />
+
+        <TextView
+            android:id="@+id/btn_toggle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:paddingVertical="10dp"
+            android:fontFamily="@font/joguman_handwriting"
+            android:textColor="#1F1B16"
+            android:textSize="15sp" />
+    </LinearLayout>
+</LinearLayout>
