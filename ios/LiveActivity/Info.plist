@@ -9,5 +9,9 @@
 	</dict>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Joguman_Handwriting-Widget.ttf</string>
+	</array>
 </dict>
 </plist>
