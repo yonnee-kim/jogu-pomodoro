@@ -21,9 +21,15 @@ final washSkinConfig = SkinConfig(
   timerOverlayBuilder: (bool isStarted) => Image(
     image: AssetImage(isStarted ? 'assets/img/wash/machine_head_on.png' : 'assets/img/wash/machine_head_off.png'),
   ),
+  landscapeBackgroundBuilder: (bool isStarted) => Image.asset(
+    isStarted ? 'assets/img/wash/machine_head_on_landscape.png' : 'assets/img/wash/machine_head_off_landscape.png',
+    fit: BoxFit.cover,
+  ),
   precacheImagePaths: [
     'assets/img/wash/machine_head_on.png',
     'assets/img/wash/machine_head_off.png',
+    'assets/img/wash/machine_head_on_landscape.png',
+    'assets/img/wash/machine_head_off_landscape.png',
   ],
   prefetchGifPaths: [
     'assets/gif/wash/wash_activate.gif',

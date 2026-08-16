@@ -223,8 +223,8 @@ void main() {
       expect(school.prefetchGifPaths, isEmpty);
     });
 
-    test('school 에셋 10개 precache', () {
-      expect(school.precacheImagePaths.length, 10);
+    test('school 에셋 11개 precache', () {
+      expect(school.precacheImagePaths.length, 11);
       expect(school.precacheImagePaths, contains('assets/img/school/head.png'));
       expect(school.precacheImagePaths, contains('assets/img/school/school.png'));
     });

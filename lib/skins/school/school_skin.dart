@@ -25,6 +25,11 @@ final schoolSkinConfig = SkinConfig(
   motionWidgetBuilder: () => const SchoolMotionWidget(),
   timerOverlayBuilder: null,
   backgroundBuilder: () => const SchoolBackground(),
+  // 가로용 배경에는 해(sun_cloud)와 언덕이 모두 포함되어 있어 단일 이미지로 그린다.
+  landscapeBackgroundBuilder: (bool isStarted) => Image.asset(
+    'assets/img/school/green_background_-landscape.png',
+    fit: BoxFit.cover,
+  ),
   dialImageAsset: 'assets/img/school/chrono.png',
   dialImageOffset: const Offset(-0.005, 0),
   dialImageScale: 1.01,
@@ -52,6 +57,7 @@ final schoolSkinConfig = SkinConfig(
     'assets/img/school/lane.png',
     'assets/img/school/school.png',
     'assets/img/school/green_background.png',
+    'assets/img/school/green_background_-landscape.png',
     'assets/img/school/sun_cloud.png',
     'assets/img/school/play.png',
     'assets/img/school/stop.png',

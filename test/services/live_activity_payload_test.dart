@@ -7,6 +7,7 @@ void main() {
       final end = DateTime.fromMillisecondsSinceEpoch(1700000000000);
       final map = buildRunningPayload(
         endDate: end,
+        totalSeconds: 2700,
         label: '집중',
         notifTitle: '알림제목',
         notifBody: '알림본문',
@@ -16,6 +17,7 @@ void main() {
       expect(map['isPaused'], 'false');
       expect(map['label'], '집중');
       expect(map['remainingSeconds'], '0');
+      expect(map['totalSeconds'], '2700');
       // 모든 값은 문자열이어야 한다 (App Group UserDefaults 제약)
       expect(map.values.every((v) => v is String), isTrue);
     });
@@ -23,6 +25,7 @@ void main() {
     test('알림 제목/본문 키를 포함한다', () {
       final payload = buildRunningPayload(
         endDate: DateTime.fromMillisecondsSinceEpoch(1000),
+        totalSeconds: 60,
         label: '집중',
         notifTitle: '조구만 뽀모도로',
         notifBody: '끝!',
@@ -35,12 +38,14 @@ void main() {
 
   group('buildPausedPayload', () {
     test('남은 초를 문자열로, isPaused는 true로 담는다', () {
-      final map = buildPausedPayload(remainingSeconds: 125, label: '집중');
+      final map =
+          buildPausedPayload(remainingSeconds: 125, totalSeconds: 300, label: '집중');
 
       expect(map['isPaused'], 'true');
       expect(map['remainingSeconds'], '125');
       expect(map['label'], '집중');
       expect(map['endDateMs'], '0');
+      expect(map['totalSeconds'], '300');
       expect(map.values.every((v) => v is String), isTrue);
     });
   });
@@ -87,6 +92,39 @@ void main() {
       final r = reconcileFromSync(
           action: LiveActivityAction.unknown, endDateMs: 0, remainingMs: 0, now: now);
       expect(r.kind, ReconcileKind.none);
+    });
+  });
+
+  group('buildAndroidStartPayload', () {
+    test('MethodChannel용 타입 그대로 담는다 (endDateMs는 int)', () {
+      final payload = buildAndroidStartPayload(
+        endDate: DateTime.fromMillisecondsSinceEpoch(1234567890000),
+        label: '집중',
+        notifTitle: '조구만 뽀모도로 타이머',
+        notifBody: '끝!',
+        totalLabel: '50분',
+        pauseLabel: '일시정지',
+        resumeLabel: '재개',
+        cancelLabel: '취소',
+      );
+      expect(payload, {
+        'endDateMs': 1234567890000,
+        'label': '집중',
+        'notifTitle': '조구만 뽀모도로 타이머',
+        'notifBody': '끝!',
+        'totalLabel': '50분',
+        'pauseLabel': '일시정지',
+        'resumeLabel': '재개',
+        'cancelLabel': '취소',
+      });
+    });
+  });
+
+  group('buildAndroidPausedPayload', () {
+    test('remainingSeconds는 int로 담는다', () {
+      final payload =
+          buildAndroidPausedPayload(remainingSeconds: 2700, label: '집중');
+      expect(payload, {'remainingSeconds': 2700, 'label': '집중'});
     });
   });
 }

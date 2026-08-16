@@ -16,6 +16,7 @@ class ReconcileResult {
 /// 종료 알림을 재예약할 때 사용한다.
 Map<String, dynamic> buildRunningPayload({
   required DateTime endDate,
+  required int totalSeconds,
   required String label,
   required String notifTitle,
   required String notifBody,
@@ -24,6 +25,7 @@ Map<String, dynamic> buildRunningPayload({
     'endDateMs': endDate.millisecondsSinceEpoch.toString(),
     'isPaused': 'false',
     'remainingSeconds': '0',
+    'totalSeconds': totalSeconds.toString(),
     'label': label,
     'notifTitle': notifTitle,
     'notifBody': notifBody,
@@ -33,12 +35,14 @@ Map<String, dynamic> buildRunningPayload({
 /// 일시정지 상태 페이로드. remainingSeconds로 고정 표시.
 Map<String, dynamic> buildPausedPayload({
   required int remainingSeconds,
+  required int totalSeconds,
   required String label,
 }) {
   return {
     'endDateMs': '0',
     'isPaused': 'true',
     'remainingSeconds': remainingSeconds.toString(),
+    'totalSeconds': totalSeconds.toString(),
     'label': label,
   };
 }
@@ -78,4 +82,39 @@ ReconcileResult reconcileFromSync({
     case LiveActivityAction.unknown:
       return const ReconcileResult(ReconcileKind.none, 0);
   }
+}
+
+/// Android 진행형 알림 시작 페이로드 (MethodChannel 'start' 인자).
+/// iOS와 달리 UserDefaults 문자열 제약이 없으므로 원 타입 그대로 전달한다.
+Map<String, dynamic> buildAndroidStartPayload({
+  required DateTime endDate,
+  required String label,
+  required String notifTitle,
+  required String notifBody,
+  required String totalLabel,
+  required String pauseLabel,
+  required String resumeLabel,
+  required String cancelLabel,
+}) {
+  return {
+    'endDateMs': endDate.millisecondsSinceEpoch,
+    'label': label,
+    'notifTitle': notifTitle,
+    'notifBody': notifBody,
+    'totalLabel': totalLabel,
+    'pauseLabel': pauseLabel,
+    'resumeLabel': resumeLabel,
+    'cancelLabel': cancelLabel,
+  };
+}
+
+/// Android 진행형 알림 일시정지 페이로드 (MethodChannel 'updatePaused' 인자).
+Map<String, dynamic> buildAndroidPausedPayload({
+  required int remainingSeconds,
+  required String label,
+}) {
+  return {
+    'remainingSeconds': remainingSeconds,
+    'label': label,
+  };
 }
