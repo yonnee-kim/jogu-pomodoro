@@ -59,3 +59,11 @@ bool isWitnessedTick({required int? lastMilliSec, required int currentMilliSec})
   final int delta = lastMilliSec - currentMilliSec;
   return delta >= 0 && delta <= 1500;
 }
+
+/// 정지 상태에서 다이얼 재설정을 목격했는지.
+/// 다이얼 스냅은 분 단위(60000ms) 점프인 반면, 재생 중 일시정지로 생기는
+/// 마지막 목격값과의 차이는 1초 미만이라 델타 크기로 구분한다.
+bool isDialAdjusted({required int? lastMilliSec, required int currentMilliSec}) {
+  if (lastMilliSec == null) return false;
+  return (currentMilliSec - lastMilliSec).abs() >= 2000;
+}

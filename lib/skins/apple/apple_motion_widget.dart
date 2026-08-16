@@ -17,6 +17,7 @@ class _AppleMotionWidgetState extends State<AppleMotionWidget> {
   int? _lastMillisec; // 직전 빌드에서 목격한 currMillisec — 백그라운드 복귀 등 큰 점프 판별용
   bool _wasStarted = false;
   bool _showingIntro = false;
+  bool _settingDial = false; // 정지 상태에서 다이얼 재설정 중 → 대기 포즈(01_blink) 고정
 
   @override
   void dispose() {
@@ -46,6 +47,7 @@ class _AppleMotionWidgetState extends State<AppleMotionWidget> {
         startSec: data.startSec, currentMilliSec: data.currMillisec);
 
     if (data.isStarted) {
+      _settingDial = false;
       final bool freshStart =
           !_wasStarted && data.currMillisec == data.startSec * 1000;
       final bool crossedBoundary = _lastSegment != null &&
@@ -58,6 +60,15 @@ class _AppleMotionWidgetState extends State<AppleMotionWidget> {
     } else {
       _introTimer?.cancel();
       _showingIntro = false;
+      // 다이얼 조작(분 단위 점프) 또는 남은 시간 == 시작 시간(재설정 완료/미시작)이면
+      // 일시정지가 아니라 시간 설정 중 — 드래그 중 낡은 startSec으로 구간을 계산해
+      // 02~04가 순차로 보이는 문제를 막는다.
+      if (isDialAdjusted(
+              lastMilliSec: _lastMillisec,
+              currentMilliSec: data.currMillisec) ||
+          data.currMillisec >= data.startSec * 1000) {
+        _settingDial = true;
+      }
     }
     _lastSegment = segment;
     _lastMillisec = data.currMillisec;
@@ -65,8 +76,10 @@ class _AppleMotionWidgetState extends State<AppleMotionWidget> {
 
     final String imgUrl;
     if (!data.isStarted) {
-      imgUrl = getAppleGifForPause(
-          startSec: data.startSec, currentMilliSec: data.currMillisec);
+      imgUrl = _settingDial
+          ? appleBlinkGif(1)
+          : getAppleGifForPause(
+              startSec: data.startSec, currentMilliSec: data.currMillisec);
     } else if (_showingIntro) {
       imgUrl = appleIntroGif(segment);
     } else {

@@ -129,4 +129,27 @@ void main() {
       expect(isWitnessedTick(lastMilliSec: 40000, currentMilliSec: 38499), false);
     });
   });
+
+  group('isDialAdjusted', () {
+    test('직전 값 없음(마운트 직후) → false', () {
+      expect(isDialAdjusted(lastMilliSec: null, currentMilliSec: 1800000), false);
+    });
+
+    test('분 단위 스냅 점프(다이얼 조작) → true', () {
+      // 0분 → 30분으로 늘리기
+      expect(isDialAdjusted(lastMilliSec: 0, currentMilliSec: 1800000), true);
+      // 30분 → 29분으로 줄이기
+      expect(isDialAdjusted(lastMilliSec: 1800000, currentMilliSec: 1740000), true);
+    });
+
+    test('재생 중 일시정지 시 1초 미만 드리프트 → false', () {
+      // 초당 알림 사이에 정지하면 마지막 목격값과 수백 ms 차이가 난다
+      expect(isDialAdjusted(lastMilliSec: 40000, currentMilliSec: 39300), false);
+    });
+
+    test('경계 2000ms 미만 델타는 조작으로 보지 않음', () {
+      expect(isDialAdjusted(lastMilliSec: 40000, currentMilliSec: 38001), false);
+      expect(isDialAdjusted(lastMilliSec: 40000, currentMilliSec: 38000), true);
+    });
+  });
 }
