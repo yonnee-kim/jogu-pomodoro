@@ -30,6 +30,7 @@
 - `initFunc`은 지금처럼 현재 스킨을 await로 프리캐시하고 `isLoaded = true`.
 - 그 후 나머지 스킨들을 백그라운드로 순차 프리캐시(`precacheImages` + `prefetchGifImages`, await로 시작을 막지 않음). 실패는 try-catch로 로그만 남긴다.
 - 최악의 경우(미캐시 상태 전환)에도 `MyGif`의 `progressBuilder` 폴백이 동작한다.
+- wash처럼 gif_view를 쓰는 스킨은 프리캐시가 바이트 수준까지만 적용되어, 스킨 전환 시 프레임 디코딩 동안 잠깐 placeholder(wash_loading.png)가 보일 수 있다(기존 앱 시작 시와 동일한 동작). 프레임 디코딩 캐시는 gif_view 공개 API로 불가하여 범위 제외.
 - 메모리는 기존과 동일(지금도 전 스킨 캐시 상주), CPU는 스킨 1개분으로 고정된다.
 
 ## 변경 2: apple 모션 위젯
