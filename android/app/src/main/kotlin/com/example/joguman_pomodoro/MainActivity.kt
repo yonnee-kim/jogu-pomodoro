@@ -46,6 +46,10 @@ class MainActivity : FlutterActivity() {
                         .putString(TimerPrefs.KEY_RESUME_LABEL, call.argument("resumeLabel") ?: "")
                         .putString(TimerPrefs.KEY_CANCEL_LABEL, call.argument("cancelLabel") ?: "")
                         .putString(TimerPrefs.KEY_END_NOTIF_OWNER, "plugin") // 종료 알림은 Dart 예약분
+                        // 앱 내 시작 시점의 미소비 스냅샷은 stale — 새 타이머 하이재킹 방지
+                        .remove(TimerPrefs.KEY_SYNC_ACTION)
+                        .remove(TimerPrefs.KEY_SYNC_END_DATE_MS)
+                        .remove(TimerPrefs.KEY_SYNC_REMAINING_MS)
                         .apply()
                     // 자체 알람은 진행형 알림 정리용으로 항상 예약(플러그인 알람은 Dart 소유 — 불가침)
                     TimerAlarm.cancel(this)
@@ -68,7 +72,13 @@ class MainActivity : FlutterActivity() {
                 "end" -> {
                     TimerAlarm.cancel(this)
                     TimerNotificationManager.cancelOngoing(this)
-                    prefs.edit().putString(TimerPrefs.KEY_STATE, "").apply()
+                    prefs.edit()
+                        .putString(TimerPrefs.KEY_STATE, "")
+                        // 앱 내 종료 시점의 미소비 스냅샷은 stale — 새 타이머 하이재킹 방지
+                        .remove(TimerPrefs.KEY_SYNC_ACTION)
+                        .remove(TimerPrefs.KEY_SYNC_END_DATE_MS)
+                        .remove(TimerPrefs.KEY_SYNC_REMAINING_MS)
+                        .apply()
                     result.success(null)
                 }
                 "consumeSync" -> {
