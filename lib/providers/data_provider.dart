@@ -117,6 +117,11 @@ class DataProvider with ChangeNotifier {
         label: 'live_activity_title'.tr(),
         notifTitle: 'app_name'.tr(),
         notifBody: 'end_message'.tr(),
+        totalLabel:
+            'la_minutes'.tr(args: [(startSec / 60).round().toString()]),
+        pauseLabel: 'la_pause'.tr(),
+        resumeLabel: 'la_resume'.tr(),
+        cancelLabel: 'la_cancel'.tr(),
       );
     } else {
       currSec = 0;
