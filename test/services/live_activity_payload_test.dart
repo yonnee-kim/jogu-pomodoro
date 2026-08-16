@@ -7,6 +7,7 @@ void main() {
       final end = DateTime.fromMillisecondsSinceEpoch(1700000000000);
       final map = buildRunningPayload(
         endDate: end,
+        totalSeconds: 2700,
         label: '집중',
         notifTitle: '알림제목',
         notifBody: '알림본문',
@@ -16,6 +17,7 @@ void main() {
       expect(map['isPaused'], 'false');
       expect(map['label'], '집중');
       expect(map['remainingSeconds'], '0');
+      expect(map['totalSeconds'], '2700');
       // 모든 값은 문자열이어야 한다 (App Group UserDefaults 제약)
       expect(map.values.every((v) => v is String), isTrue);
     });
@@ -23,6 +25,7 @@ void main() {
     test('알림 제목/본문 키를 포함한다', () {
       final payload = buildRunningPayload(
         endDate: DateTime.fromMillisecondsSinceEpoch(1000),
+        totalSeconds: 60,
         label: '집중',
         notifTitle: '조구만 뽀모도로',
         notifBody: '끝!',
@@ -35,12 +38,14 @@ void main() {
 
   group('buildPausedPayload', () {
     test('남은 초를 문자열로, isPaused는 true로 담는다', () {
-      final map = buildPausedPayload(remainingSeconds: 125, label: '집중');
+      final map =
+          buildPausedPayload(remainingSeconds: 125, totalSeconds: 300, label: '집중');
 
       expect(map['isPaused'], 'true');
       expect(map['remainingSeconds'], '125');
       expect(map['label'], '집중');
       expect(map['endDateMs'], '0');
+      expect(map['totalSeconds'], '300');
       expect(map.values.every((v) => v is String), isTrue);
     });
   });
